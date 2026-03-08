@@ -1,47 +1,23 @@
 /**
- * Home - Main monitor page orchestrating all components.
+ * Home - Main monitor page.
  *
- * Layout (full viewport, no scrolling):
- *   [StatusBar]        - top strip: connection, time, amplitude, recording
- *   [WaveformCanvas]   - center 70%+: real-time waveform display
- *   [ControlBar]       - bottom strip: start/stop, record, export, device select
- *   [SettingsPanel]    - slide-in from right (optional)
- *   [AlarmOverlay]     - full-screen overlay when alarm triggers
- *   [StartScreen]      - shown before first start (user gesture required for iOS)
+ * Matches the original Python script behavior:
+ *   - Full-screen chart (matplotlib-style)
+ *   - Simple controls: Start/Stop, Record, Export WAV, device selector
+ *   - Audio passthrough to speakers
+ *   - 30s silence alarm with audible warning
+ *   - No fancy UI -- functional medical tool
  */
 
 import { useState, useCallback, useEffect } from 'react';
 import { useAudioEngine } from '@/hooks/useAudioEngine';
 import WaveformCanvas from '@/components/WaveformCanvas';
-import StatusBar from '@/components/StatusBar';
-import ControlBar from '@/components/ControlBar';
-import SettingsPanel from '@/components/SettingsPanel';
 import AlarmOverlay from '@/components/AlarmOverlay';
-import StartScreen from '@/components/StartScreen';
+import { Play, Square, Circle, Download, Mic } from 'lucide-react';
 
 export default function Home() {
   const engine = useAudioEngine();
-  const [hasStarted, setHasStarted] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-
-  // Configurable parameters (local state, passed to engine via constants)
-  // These override the hook defaults when we rebuild the settings panel
-  const [gain, setGain] = useState(engine.GAIN);
-  const [threshold, setThreshold] = useState(engine.THRESHOLD);
-  const [maxSilenceDuration, setMaxSilenceDuration] = useState(engine.MAX_SILENCE_DURATION);
-
-  // Track online/offline status
-  useEffect(() => {
-    const onOnline = () => setIsOnline(true);
-    const onOffline = () => setIsOnline(false);
-    window.addEventListener('online', onOnline);
-    window.addEventListener('offline', onOffline);
-    return () => {
-      window.removeEventListener('online', onOnline);
-      window.removeEventListener('offline', onOffline);
-    };
-  }, []);
+  const [gain] = useState(engine.GAIN);
 
   // Register service worker for offline capability
   useEffect(() => {
@@ -56,54 +32,33 @@ export default function Home() {
   // Force re-render for clock updates
   const [, setTick] = useState(0);
   useEffect(() => {
-    if (!hasStarted) return;
     const interval = setInterval(() => setTick((t) => t + 1), 1000);
     return () => clearInterval(interval);
-  }, [hasStarted]);
+  }, []);
 
-  // Handle initial start (user gesture for iOS AudioContext)
-  const handleInitialStart = useCallback(async () => {
-    try {
-      await engine.start(engine.selectedDeviceId || undefined);
-      setHasStarted(true);
-    } catch (err) {
-      console.error('Failed to start:', err);
-      alert(
-        'Microphone access is required. Please allow microphone permissions and try again.'
-      );
-    }
-  }, [engine]);
-
-  // Handle start from control bar (after initial start)
   const handleStart = useCallback(async () => {
     try {
       await engine.start(engine.selectedDeviceId || undefined);
     } catch (err) {
       console.error('Failed to start:', err);
+      alert('Microphone access is required. Please allow microphone permissions and try again.');
     }
   }, [engine]);
 
-  // Show start screen if not yet started
-  if (!hasStarted) {
-    return <StartScreen onStart={handleInitialStart} isOnline={isOnline} />;
-  }
-
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-[var(--color-monitor-bg)] relative">
-      {/* Status bar */}
-      <StatusBar
-        isRunning={engine.isRunning}
-        isRecording={engine.isRecording}
-        isAlarm={engine.isAlarm}
-        elapsedTime={engine.elapsedTime}
-        currentAmplitude={engine.currentAmplitude}
-        peakAmplitude={engine.peakAmplitude}
-        silenceDuration={engine.silenceDuration}
-        maxSilenceDuration={maxSilenceDuration}
-      />
+    <div className="h-screen flex flex-col bg-[#f0f0f0] relative">
+      {/* Title bar */}
+      <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-gray-300">
+        <h1 className="text-sm font-semibold text-gray-800">
+          Pretracheal Air Flow Monitor
+        </h1>
+        <span className="text-xs text-gray-500">
+          USC Anesthesiology Scholarly Project
+        </span>
+      </div>
 
-      {/* Waveform area - takes all remaining space */}
-      <div className="flex-1 relative">
+      {/* Chart area - takes all remaining space */}
+      <div className="flex-1 p-2">
         <WaveformCanvas
           waveformData={engine.waveformData}
           gain={gain}
@@ -111,34 +66,89 @@ export default function Home() {
           elapsedTime={engine.elapsedTime}
           windowDuration={engine.WINDOW_DURATION}
         />
-
-        {/* Settings panel overlays the waveform area */}
-        <SettingsPanel
-          visible={showSettings}
-          onClose={() => setShowSettings(false)}
-          gain={gain}
-          threshold={threshold}
-          maxSilenceDuration={maxSilenceDuration}
-          onGainChange={setGain}
-          onThresholdChange={setThreshold}
-          onSilenceDurationChange={setMaxSilenceDuration}
-        />
       </div>
 
       {/* Control bar */}
-      <ControlBar
-        isRunning={engine.isRunning}
-        isRecording={engine.isRecording}
-        devices={engine.devices}
-        selectedDeviceId={engine.selectedDeviceId}
-        onStart={handleStart}
-        onStop={engine.stop}
-        onToggleRecording={engine.toggleRecording}
-        onExport={engine.exportWAV}
-        onDeviceChange={engine.switchDevice}
-        showSettings={showSettings}
-        onToggleSettings={() => setShowSettings((s) => !s)}
-      />
+      <div className="flex items-center justify-between px-4 py-2.5 bg-white border-t border-gray-300">
+        {/* Left: Main controls */}
+        <div className="flex items-center gap-2">
+          {!engine.isRunning ? (
+            <button
+              onClick={handleStart}
+              className="flex items-center gap-1.5 px-4 py-2 rounded bg-green-600 text-white text-sm font-medium hover:bg-green-700 active:bg-green-800 transition-colors shadow-sm"
+            >
+              <Play className="w-3.5 h-3.5 fill-current" />
+              Start
+            </button>
+          ) : (
+            <button
+              onClick={engine.stop}
+              className="flex items-center gap-1.5 px-4 py-2 rounded bg-red-600 text-white text-sm font-medium hover:bg-red-700 active:bg-red-800 transition-colors shadow-sm"
+            >
+              <Square className="w-3.5 h-3.5 fill-current" />
+              Stop
+            </button>
+          )}
+
+          <button
+            onClick={engine.toggleRecording}
+            disabled={!engine.isRunning}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded text-sm font-medium transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed ${
+              engine.isRecording
+                ? 'bg-red-100 text-red-700 border border-red-300'
+                : 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200'
+            }`}
+          >
+            <Circle className={`w-3 h-3 ${engine.isRecording ? 'fill-red-500 text-red-500' : ''}`} />
+            {engine.isRecording ? 'Stop Rec' : 'Record'}
+          </button>
+
+          <button
+            onClick={engine.exportWAV}
+            disabled={!engine.isRecording && !engine.isRunning}
+            className="flex items-center gap-1.5 px-3 py-2 rounded bg-gray-100 text-gray-700 border border-gray-300 text-sm font-medium hover:bg-gray-200 transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Download className="w-3.5 h-3.5" />
+            Export WAV
+          </button>
+        </div>
+
+        {/* Center: Status */}
+        <div className="flex items-center gap-4 text-xs text-gray-600">
+          {engine.isRunning && (
+            <>
+              <span>
+                Elapsed: {Math.floor(engine.elapsedTime / 60).toString().padStart(2, '0')}:
+                {Math.floor(engine.elapsedTime % 60).toString().padStart(2, '0')}
+              </span>
+              <span>Amp: {engine.currentAmplitude.toFixed(1)}</span>
+              {engine.silenceDuration > 2 && (
+                <span className={engine.silenceDuration > 20 ? 'text-red-600 font-semibold' : 'text-amber-600'}>
+                  Silence: {engine.silenceDuration.toFixed(0)}s
+                </span>
+              )}
+              {engine.isRecording && (
+                <span className="text-red-600 font-semibold">REC</span>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Right: Device selector */}
+        <div className="flex items-center gap-2">
+          <Mic className="w-3.5 h-3.5 text-gray-500" />
+          <select
+            value={engine.selectedDeviceId || ''}
+            onChange={(e) => engine.switchDevice(e.target.value)}
+            className="bg-white text-gray-700 text-xs border border-gray-300 rounded px-2 py-1.5 max-w-[180px] truncate focus:outline-none focus:border-blue-500"
+          >
+            {engine.devices.length === 0 && <option value="">No devices</option>}
+            {engine.devices.map((d) => (
+              <option key={d.deviceId} value={d.deviceId}>{d.label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
 
       {/* Alarm overlay */}
       <AlarmOverlay

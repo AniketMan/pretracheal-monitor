@@ -1,15 +1,11 @@
 /**
- * AlarmOverlay - Full-screen alarm overlay when silence exceeds threshold.
+ * AlarmOverlay - Simple alarm overlay matching Figure 5 from the PDF.
  *
- * Design: Clinical Instrument Panel
- *   - Slow red pulse (not strobing - clinical environments avoid seizure triggers)
- *   - Large centered warning text visible from across the room
- *   - Tap/click anywhere to dismiss
- *   - Plays an audible alarm tone using Web Audio API (no external files needed)
+ * Plays an audible alarm tone using Web Audio API (no external files).
+ * Tap/click to dismiss.
  */
 
 import { useEffect, useRef, useCallback } from 'react';
-import { AlertTriangle } from 'lucide-react';
 
 interface AlarmOverlayProps {
   isAlarm: boolean;
@@ -17,19 +13,13 @@ interface AlarmOverlayProps {
   onDismiss: () => void;
 }
 
-/**
- * Generate an alarm beep pattern using Web Audio API.
- * Creates a repeating 880Hz tone pattern (0.15s on, 0.1s off).
- * No external audio files needed - works fully offline.
- */
-function createAlarmOscillator(audioCtx: AudioContext): OscillatorNode {
+function createAlarmBeep(audioCtx: AudioContext): OscillatorNode {
   const osc = audioCtx.createOscillator();
   const gainNode = audioCtx.createGain();
 
   osc.type = 'square';
   osc.frequency.setValueAtTime(880, audioCtx.currentTime);
 
-  // Create beep pattern via gain modulation
   const now = audioCtx.currentTime;
   const beepOn = 0.15;
   const beepOff = 0.1;
@@ -60,17 +50,14 @@ export default function AlarmOverlay({
   const alarmCtxRef = useRef<AudioContext | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Play alarm sound when alarm activates
   const playAlarm = useCallback(() => {
     try {
       const ctx = new AudioContext();
       alarmCtxRef.current = ctx;
-      createAlarmOscillator(ctx);
-
-      // Repeat every 3 seconds
+      createAlarmBeep(ctx);
       intervalRef.current = setInterval(() => {
         if (alarmCtxRef.current && alarmCtxRef.current.state !== 'closed') {
-          createAlarmOscillator(alarmCtxRef.current);
+          createAlarmBeep(alarmCtxRef.current);
         }
       }, 3000);
     } catch (err) {
@@ -78,7 +65,6 @@ export default function AlarmOverlay({
     }
   }, []);
 
-  // Stop alarm sound
   const stopAlarm = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
@@ -104,22 +90,18 @@ export default function AlarmOverlay({
   return (
     <div
       onClick={onDismiss}
-      className="absolute inset-0 z-40 flex items-center justify-center cursor-pointer alarm-pulse"
-      style={{
-        background: 'rgba(74, 10, 10, 0.6)',
-        backdropFilter: 'blur(2px)',
-      }}
+      className="absolute inset-0 z-40 flex items-center justify-center cursor-pointer"
+      style={{ background: 'rgba(255, 50, 50, 0.25)' }}
     >
-      <div className="flex flex-col items-center gap-4 p-8 rounded-xl bg-[var(--color-monitor-bg)]/90 border-2 border-red-500/50 shadow-[0_0_60px_rgba(255,23,68,0.3)] max-w-md mx-4">
-        <AlertTriangle className="w-12 h-12 text-red-500" />
-        <h2 className="font-data text-xl md:text-2xl font-bold text-red-400 glow-red text-center tracking-wide">
+      <div className="bg-white border-2 border-black px-8 py-5 text-center shadow-lg">
+        <p className="text-lg font-bold text-black">
           WARNING: NO SOUND DETECTED
-        </h2>
-        <p className="font-data text-sm text-red-300/80 text-center">
-          No audio detected for {silenceDuration.toFixed(0)} seconds
         </p>
-        <p className="text-xs text-[var(--color-monitor-text-dim)] mt-2">
-          Tap anywhere to dismiss
+        <p className="text-sm text-gray-600 mt-2">
+          No audio for {silenceDuration.toFixed(0)} seconds
+        </p>
+        <p className="text-xs text-gray-400 mt-3">
+          Tap to dismiss
         </p>
       </div>
     </div>
