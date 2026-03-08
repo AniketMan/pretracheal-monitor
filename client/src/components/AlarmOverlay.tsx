@@ -1,8 +1,11 @@
 /**
- * AlarmOverlay - Simple alarm overlay matching Figure 5 from the PDF.
+ * AlarmOverlay - HIG-compliant critical alert overlay.
  *
- * Plays an audible alarm tone using Web Audio API (no external files).
- * Tap/click to dismiss.
+ * HIG Feedback: "Critical alerts should be interruptive and require acknowledgment."
+ * HIG Accessibility: "Complement audio cues with haptic feedback."
+ *
+ * Uses Web Audio API for alarm tone (works even in silent mode per HIG audio rules).
+ * Triggers navigator.vibrate for haptic feedback on supported devices.
  */
 
 import { useEffect, useRef, useCallback } from 'react';
@@ -17,21 +20,21 @@ function createAlarmBeep(audioCtx: AudioContext): OscillatorNode {
   const osc = audioCtx.createOscillator();
   const gainNode = audioCtx.createGain();
 
-  osc.type = 'square';
+  osc.type = 'sine'; // Sine wave is less harsh than square
   osc.frequency.setValueAtTime(880, audioCtx.currentTime);
 
   const now = audioCtx.currentTime;
-  const beepOn = 0.15;
-  const beepOff = 0.1;
+  const beepOn = 0.12;
+  const beepOff = 0.08;
   const cycle = beepOn + beepOff;
-  const duration = 2.0;
+  const duration = 1.5;
   const repeats = Math.floor(duration / cycle);
 
   gainNode.gain.setValueAtTime(0, now);
   for (let i = 0; i < repeats; i++) {
     const start = now + i * cycle;
-    gainNode.gain.setValueAtTime(0.3, start);
-    gainNode.gain.setValueAtTime(0, start + beepOn);
+    gainNode.gain.linearRampToValueAtTime(0.25, start + 0.01);
+    gainNode.gain.linearRampToValueAtTime(0, start + beepOn);
   }
 
   osc.connect(gainNode);
@@ -55,11 +58,20 @@ export default function AlarmOverlay({
       const ctx = new AudioContext();
       alarmCtxRef.current = ctx;
       createAlarmBeep(ctx);
+
+      // Haptic feedback (HIG: complement audio with haptics)
+      if ('vibrate' in navigator) {
+        navigator.vibrate([200, 100, 200, 100, 200]);
+      }
+
       intervalRef.current = setInterval(() => {
         if (alarmCtxRef.current && alarmCtxRef.current.state !== 'closed') {
           createAlarmBeep(alarmCtxRef.current);
+          if ('vibrate' in navigator) {
+            navigator.vibrate([200, 100, 200]);
+          }
         }
-      }, 3000);
+      }, 2500);
     } catch (err) {
       console.error('Failed to play alarm:', err);
     }
@@ -73,6 +85,9 @@ export default function AlarmOverlay({
     if (alarmCtxRef.current) {
       alarmCtxRef.current.close();
       alarmCtxRef.current = null;
+    }
+    if ('vibrate' in navigator) {
+      navigator.vibrate(0); // Cancel vibration
     }
   }, []);
 
@@ -90,18 +105,45 @@ export default function AlarmOverlay({
   return (
     <div
       onClick={onDismiss}
-      className="absolute inset-0 z-40 flex items-center justify-center cursor-pointer"
-      style={{ background: 'rgba(255, 50, 50, 0.25)' }}
+      role="alertdialog"
+      aria-label={`Warning: No sound detected for ${Math.floor(silenceDuration)} seconds. Tap to dismiss.`}
+      className="absolute inset-0 z-50 flex flex-col items-center justify-center cursor-pointer"
+      style={{
+        background: 'rgba(255, 59, 48, 0.08)',
+        backdropFilter: 'blur(4px)',
+        WebkitBackdropFilter: 'blur(4px)',
+      }}
     >
-      <div className="bg-white border-2 border-black px-8 py-5 text-center shadow-lg">
-        <p className="text-lg font-bold text-black">
-          WARNING: NO SOUND DETECTED
+      {/* HIG: Critical alert card with Liquid Glass material */}
+      <div
+        className="mx-6 px-8 py-6 text-center ios-rounded-lg max-w-sm w-full"
+        style={{
+          background: 'rgba(255, 59, 48, 0.12)',
+          backdropFilter: 'blur(40px) saturate(1.5)',
+          WebkitBackdropFilter: 'blur(40px) saturate(1.5)',
+          border: '0.5px solid rgba(255, 59, 48, 0.3)',
+        }}
+      >
+        {/* SF Symbol-style warning icon */}
+        <div className="w-12 h-12 mx-auto mb-3 rounded-full flex items-center justify-center alarm-pulse"
+          style={{ background: 'rgba(255, 59, 48, 0.2)' }}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-[#ff453a]">
+            <path d="M12 2L2 20h20L12 2z" fill="currentColor" opacity="0.2" />
+            <path d="M12 4.5L3.5 19h17L12 4.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" fill="none" />
+            <path d="M12 10v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            <circle cx="12" cy="16.5" r="1" fill="currentColor" />
+          </svg>
+        </div>
+
+        <p className="type-headline text-[#ff453a]">
+          No Sound Detected
         </p>
-        <p className="text-sm text-gray-600 mt-2">
-          No audio for {silenceDuration.toFixed(0)} seconds
+        <p className="type-subhead mt-2" style={{ color: 'rgba(255,255,255,0.6)' }}>
+          Silent for {Math.floor(silenceDuration)}s
         </p>
-        <p className="text-xs text-gray-400 mt-3">
-          Tap to dismiss
+        <p className="type-caption1 mt-4" style={{ color: 'rgba(255,255,255,0.35)' }}>
+          Tap anywhere to dismiss
         </p>
       </div>
     </div>
