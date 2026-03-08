@@ -75,6 +75,8 @@ export function useAudioEngine() {
   const animFrameRef = useRef<number>(0);
   const isRunningRef = useRef(false);
   const passThoughRef = useRef(false);
+  const isRecordingRef = useRef(false);
+  const [hasRecordedData, setHasRecordedData] = useState(false);
 
   // Waveform data exposed for canvas rendering
   const [waveformData, setWaveformData] = useState<Float32Array>(
@@ -160,8 +162,8 @@ export function useAudioEngine() {
           buffer.copyWithin(0, input.length);
           buffer.set(input, buffer.length - input.length);
 
-          // Record if active
-          if (isRecording) {
+          // Record if active (use ref, not state -- closure would capture stale value)
+          if (isRecordingRef.current) {
             recordedChunksRef.current.push(new Float32Array(input));
           }
         };
@@ -243,7 +245,7 @@ export function useAudioEngine() {
         throw err;
       }
     },
-    [isRecording, refreshDevices]
+    [refreshDevices]
   );
 
   // -- Stop monitoring --
@@ -273,23 +275,39 @@ export function useAudioEngine() {
       audioContextRef.current = null;
     }
 
+    isRecordingRef.current = false;
     setIsRunning(false);
+    setIsRecording(false);
     setIsAlarm(false);
     isAlarmRef.current = false;
+    if (recordedChunksRef.current.length > 0) {
+      setHasRecordedData(true);
+    }
   }, []);
 
   // -- Toggle recording --
   const toggleRecording = useCallback(() => {
-    if (!isRecording) {
+    if (!isRecordingRef.current) {
+      // Starting a new recording -- clear previous chunks
       recordedChunksRef.current = [];
+      setHasRecordedData(false);
+      isRecordingRef.current = true;
+      setIsRecording(true);
+    } else {
+      // Stopping recording
+      isRecordingRef.current = false;
+      setIsRecording(false);
+      setHasRecordedData(recordedChunksRef.current.length > 0);
     }
-    setIsRecording((prev) => !prev);
-  }, [isRecording]);
+  }, []);
 
   // -- Export recorded audio as WAV --
   const exportWAV = useCallback(() => {
     const chunks = recordedChunksRef.current;
-    if (chunks.length === 0) return null;
+    if (chunks.length === 0) {
+      console.warn('No recorded data to export');
+      return null;
+    }
 
     // Calculate total length
     let totalLength = 0;
@@ -364,6 +382,7 @@ export function useAudioEngine() {
     devices,
     selectedDeviceId,
     waveformData,
+    hasRecordedData,
     // Actions
     start,
     stop,

@@ -214,7 +214,7 @@ export default function Home() {
           {/* Export WAV */}
           <button
             onClick={engine.exportWAV}
-            disabled={!engine.isRecording && !engine.isRunning}
+            disabled={!engine.hasRecordedData && !engine.isRecording}
             className="flex items-center justify-center gap-1.5 px-4 min-h-[44px] ios-rounded bg-secondary text-secondary-foreground type-subhead transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
             aria-label="Export recording as WAV file"
           >
