@@ -107,3 +107,8 @@ temp/
 
 # Webdev artifacts (checkpoint zips, migrations, etc.)
 .webdev/
+ios/build/
+ios/PretrachealMonitor.xcodeproj/
+ios/*.xcworkspace
+ios/DerivedData/
+.DS_Store
