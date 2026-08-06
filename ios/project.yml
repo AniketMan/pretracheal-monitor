@@ -20,7 +20,7 @@ targets:
     deploymentTarget: "26.0"
     sources:
       - path: Sources
-      - path: Assets.xcassets
+      - path: AppIcon.icon
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.pretracheal.monitor
