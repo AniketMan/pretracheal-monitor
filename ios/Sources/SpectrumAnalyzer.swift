@@ -21,6 +21,11 @@ final class SpectrumAnalyzer: @unchecked Sendable {
     private var sum: [Double]
     private var frames = 0
     private var pending: [Float] = []
+    /// Exponentially smoothed most-recent spectrum, for the runtime gate.
+    /// Mirrors AnalyserNode's default smoothingTimeConstant of 0.8.
+    private var smoothed: [Double]
+    private var hasSmoothed = false
+    private let smoothing = 0.8
 
     init?(fftSize: Int = 2048) {
         guard fftSize > 0, (fftSize & (fftSize - 1)) == 0 else { return nil }
@@ -29,6 +34,7 @@ final class SpectrumAnalyzer: @unchecked Sendable {
         guard let setup = vDSP_create_fftsetup(log2n, FFTRadix(kFFTRadix2)) else { return nil }
         self.fftSetup = setup
         self.sum = [Double](repeating: 0, count: fftSize / 2)
+        self.smoothed = [Double](repeating: -140, count: fftSize / 2)
 
         var hann = [Float](repeating: 0, count: fftSize)
         vDSP_hann_window(&hann, vDSP_Length(fftSize), Int32(vDSP_HANN_NORM))
@@ -45,6 +51,13 @@ final class SpectrumAnalyzer: @unchecked Sendable {
         for i in sum.indices { sum[i] = 0 }
         frames = 0
         pending.removeAll(keepingCapacity: true)
+    }
+
+    /// Latest smoothed spectrum in dB. Empty until at least one frame landed.
+    func latestDb() -> [Double] {
+        lock.lock()
+        defer { lock.unlock() }
+        return hasSmoothed ? smoothed : []
     }
 
     /// Feeds samples, consuming them in fftSize-sized hops.
@@ -102,8 +115,11 @@ final class SpectrumAnalyzer: @unchecked Sendable {
         let scale = 1.0 / Double(fftSize * fftSize)
         for i in 0..<(fftSize / 2) {
             let power = Double(magnitudes[i]) * scale
-            sum[i] += power > 0 ? max(10 * log10(power), -140) : -140
+            let db = power > 0 ? max(10 * log10(power), -140) : -140
+            sum[i] += db
+            smoothed[i] = hasSmoothed ? smoothed[i] * smoothing + db * (1 - smoothing) : db
         }
+        hasSmoothed = true
         frames += 1
     }
 }

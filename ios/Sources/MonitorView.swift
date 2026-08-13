@@ -88,6 +88,11 @@ struct MonitorView: View {
                 Text("\(Int(band.lowHz))–\(Int(band.highHz)) Hz")
                     .foregroundStyle(.green)
             }
+            if engine.gateVerdict == .notBreathShaped {
+                Text("Room noise ignored")
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.orange)
+            }
             if engine.isRecording {
                 HStack(spacing: 4) {
                     Circle().fill(.red).frame(width: 8, height: 8)

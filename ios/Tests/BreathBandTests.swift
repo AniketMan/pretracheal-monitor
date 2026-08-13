@@ -81,6 +81,55 @@ struct BreathBandTests {
                                       binHz: 0) == nil)
     }
 
+    // MARK: - Room-noise gate
+
+    static func calibrated() -> (band: BreathBand, ambient: [Double], breath: [Double]) {
+        let ambient = spectrum([])
+        let breath = spectrum([(hz: 400, widthHz: 120, db: 30)])
+        let band = BreathBandPicker.pick(ambientDb: ambient, breathDb: breath, binHz: binHz)!
+        return (band, ambient, breath)
+    }
+
+    @Test func recordsGateReferenceLevelsDuringCalibration() {
+        let (band, _, _) = Self.calibrated()
+        #expect(band.ambientInBandDb != nil)
+        #expect((band.dominanceDb ?? 0) > 0)
+    }
+
+    @Test func acceptsTheBreathingItWasCalibratedOn() {
+        let (band, _, breath) = Self.calibrated()
+        let stats = BreathBandPicker.stats(spectrumDb: breath, binHz: Self.binHz, band: band)
+        #expect(BreathBandPicker.classify(stats, profile: band) == .breath)
+    }
+
+    @Test func rejectsRoomSpeechLouderThanTheBreath() {
+        let (band, _, _) = Self.calibrated()
+        // Speech: fundamental plus formants spread across the spectrum,
+        // overlapping the band but not confined to it, and louder overall.
+        let speech = Self.spectrum([
+            (hz: 150, widthHz: 60, db: 38),
+            (hz: 500, widthHz: 200, db: 40),
+            (hz: 1500, widthHz: 400, db: 36),
+            (hz: 2500, widthHz: 500, db: 32),
+        ])
+        let stats = BreathBandPicker.stats(spectrumDb: speech, binHz: Self.binHz, band: band)
+        #expect(BreathBandPicker.classify(stats, profile: band) == .notBreathShaped)
+    }
+
+    @Test func rejectsQuietRoomTone() {
+        let (band, ambient, _) = Self.calibrated()
+        let stats = BreathBandPicker.stats(spectrumDb: ambient, binHz: Self.binHz, band: band)
+        #expect(BreathBandPicker.classify(stats, profile: band) == .belowAmbient)
+    }
+
+    @Test func reportsNoProfileForBandsSavedBeforeTheGateExisted() {
+        var (band, _, breath) = Self.calibrated()
+        let stats = BreathBandPicker.stats(spectrumDb: breath, binHz: Self.binHz, band: band)
+        band.ambientInBandDb = nil
+        band.dominanceDb = nil
+        #expect(BreathBandPicker.classify(stats, profile: band) == .noProfile)
+    }
+
     // MARK: - Gain ladder
 
     @MainActor

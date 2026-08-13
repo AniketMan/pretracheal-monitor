@@ -68,6 +68,7 @@ final class AudioEngine {
     private(set) var calibrationPhase: CalibrationPhase = .idle
     private(set) var calibrationProgress: Double = 0
     private(set) var calibrationError: String?
+    private(set) var gateVerdict: GateVerdict = .noProfile
 
     /// Whether the learned band is actually applied to the signal.
     var filterEnabled: Bool = UserDefaults.standard.bool(forKey: "monitor.breathFilterEnabled") {
@@ -112,9 +113,15 @@ final class AudioEngine {
     private let eq = AVAudioUnitEQ(numberOfBands: 1)
     private let calibrationAnalyzer = SpectrumAnalyzer()
     private let calibrationActive = AtomicFlag()
+    /// Runs continuously on the raw signal: the shape of what is *out* of band
+    /// is exactly what separates speech from breath, and the filter removes it.
+    private let gateAnalyzer = SpectrumAnalyzer()
+    private let gateActive = AtomicFlag()
     private var calibrationTask: Task<BreathBand?, Never>?
     private var displayTimer: Timer?
     private var startTime = CFAbsoluteTimeGetCurrent()
+    /// When the current run of silence began, or nil while sound is present.
+    private var silenceStartedAt: CFAbsoluteTime?
     private var sampleRate: Double = 44_100
 
     init() {
@@ -194,6 +201,8 @@ final class AudioEngine {
 
             let analyzer = calibrationAnalyzer
             let calibrating = calibrationActive
+            let gate = gateAnalyzer
+            let gating = gateActive
 
             // Display + detection tap: downstream of the filter.
             eq.removeTap(onBus: 0)
@@ -216,6 +225,7 @@ final class AudioEngine {
                     let samples = UnsafeBufferPointer(start: pointer, count: frames)
                     if recordingFlag.value { recording.append(samples) }
                     if calibrating.value { analyzer?.append(samples) }
+                    if gating.value { gate?.append(samples) }
                 }
             }
 
@@ -223,6 +233,7 @@ final class AudioEngine {
             try engine.start()
 
             startTime = CFAbsoluteTimeGetCurrent()
+            silenceStartedAt = nil
             silenceDuration = 0
             elapsedTime = 0
             isAlarm = false
@@ -288,6 +299,8 @@ final class AudioEngine {
             parametric.bypass = true
         }
         eq.bypass = !(filterEnabled && band != nil)
+        gateActive.value = filterEnabled && band != nil
+        if !gateActive.value { gateVerdict = .noProfile }
     }
 
     /// Samples the room, then the patient, and derives a passband from the
@@ -372,6 +385,9 @@ final class AudioEngine {
 
     func dismissAlarm() {
         isAlarm = false
+        // Restart the clock, not just the counter: leaving the old timestamp
+        // in place would re-trip the alarm on the very next tick.
+        silenceStartedAt = nil
         silenceDuration = 0
     }
 
@@ -414,19 +430,44 @@ final class AudioEngine {
         // Silence detection runs at the reference gain, not the user's, so
         // turning sensitivity up to see a faint trace cannot quietly
         // desensitise the alarm.
-        let detectionRms = rawRms * Self.defaultGain
+        var detectionRms = rawRms * Self.defaultGain
+
+        // Breath gate: with a calibrated profile active, sound that does not
+        // look like the calibrated breathing (room speech, alarms, knocks) is
+        // not counted as airflow. Rejecting only ever makes the alarm fire
+        // sooner, never later.
+        if filterEnabled, let band, let analyzer = gateAnalyzer {
+            let spectrum = analyzer.latestDb()
+            if !spectrum.isEmpty {
+                let binHz = sampleRate / Double(analyzer.fftSize)
+                let verdict = BreathBandPicker.classify(
+                    BreathBandPicker.stats(spectrumDb: spectrum, binHz: binHz, band: band),
+                    profile: band
+                )
+                gateVerdict = verdict
+                if verdict == .belowAmbient || verdict == .notBreathShaped {
+                    detectionRms = 0
+                }
+            }
+        }
 
         currentAmplitude = rms
         peakAmplitude = peak * gain
         elapsedTime = CFAbsoluteTimeGetCurrent() - startTime
         waveform = waveformBuffer.snapshot()
 
+        // Silence is measured from a wall-clock timestamp rather than summing
+        // the timer interval: Timer coalescing and missed fires would otherwise
+        // make the apnea alarm late by however much the timer drifted.
+        let now = CFAbsoluteTimeGetCurrent()
         if detectionRms < Self.threshold {
-            silenceDuration += interval
+            if silenceStartedAt == nil { silenceStartedAt = now }
+            silenceDuration = now - (silenceStartedAt ?? now)
             if silenceDuration > Self.maxSilenceDuration && !isAlarm {
                 isAlarm = true
             }
         } else {
+            silenceStartedAt = nil
             silenceDuration = 0
             if isAlarm { isAlarm = false }
         }
