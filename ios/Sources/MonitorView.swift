@@ -20,7 +20,7 @@ struct MonitorView: View {
                 header
                 WaveformChart(
                     samples: engine.waveform,
-                    gain: AudioEngine.gain,
+                    gain: engine.gain,
                     isAlarm: engine.isAlarm,
                     windowDuration: AudioEngine.windowDuration
                 )
@@ -28,6 +28,7 @@ struct MonitorView: View {
                 .padding(.bottom, 4)
 
                 if engine.isRunning { statusStrip }
+                sensitivitySlider
                 controlBar
             }
 
@@ -91,6 +92,49 @@ struct MonitorView: View {
         .font(.caption.monospacedDigit())
         .foregroundStyle(.secondary)
         .padding(.vertical, 6)
+    }
+
+    // MARK: - Sensitivity
+
+    /// Mic gain. Scales the trace and the silence threshold together, so
+    /// turning it up also makes the alarm slower to fire — the label spells
+    /// that out rather than leaving it as a hidden side effect.
+    private var sensitivitySlider: some View {
+        @Bindable var engine = engine
+
+        return VStack(spacing: 2) {
+            HStack {
+                Text("Mic Sensitivity")
+                Spacer()
+                Text("\(Int(engine.gain))×")
+                    .monospacedDigit()
+                    .foregroundStyle(engine.gain == AudioEngine.defaultGain ? .secondary : .primary)
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+
+            HStack(spacing: 10) {
+                Image(systemName: "mic")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                Slider(value: $engine.gain,
+                       in: AudioEngine.gainRange,
+                       step: 5) {
+                    Text("Mic sensitivity")
+                } minimumValueLabel: {
+                    EmptyView()
+                } maximumValueLabel: {
+                    EmptyView()
+                }
+                .tint(.green)
+                .accessibilityValue("\(Int(engine.gain)) times amplification")
+                Image(systemName: "mic.fill")
+                    .font(.subheadline)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.bottom, 4)
     }
 
     // MARK: - Controls

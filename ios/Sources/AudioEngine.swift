@@ -15,11 +15,31 @@ import SwiftUI
 final class AudioEngine {
     // MARK: Configuration (mirrors client/src/hooks/useAudioEngine.ts)
     static let windowDuration: Double = 3.0    // seconds of visible waveform
-    static let gain: Float = 50                // display amplification
+    static let defaultGain: Float = 50         // display amplification (web build's fixed value)
+    static let gainRange: ClosedRange<Float> = 10...150
     static let threshold: Float = 1            // amplitude below which audio is "silent"
     static let maxSilenceDuration: Double = 30 // seconds before the alarm fires
 
     // MARK: Published state
+
+    /// Mic sensitivity — scales the displayed waveform and, with it, the
+    /// silence threshold, so raising it makes the alarm harder to trigger.
+    /// Persisted so a clinician's setting survives relaunch.
+    var gain: Float = AudioEngine.storedGain() {
+        didSet {
+            gain = min(max(gain, Self.gainRange.lowerBound), Self.gainRange.upperBound)
+            UserDefaults.standard.set(gain, forKey: Self.gainDefaultsKey)
+        }
+    }
+
+    private static let gainDefaultsKey = "monitor.gain"
+
+    private static func storedGain() -> Float {
+        guard UserDefaults.standard.object(forKey: gainDefaultsKey) != nil else { return defaultGain }
+        let stored = UserDefaults.standard.float(forKey: gainDefaultsKey)
+        return min(max(stored, gainRange.lowerBound), gainRange.upperBound)
+    }
+
     private(set) var isRunning = false
     private(set) var isRecording = false
     private(set) var isAlarm = false
@@ -208,10 +228,10 @@ final class AudioEngine {
             sumSquares += sample * sample
             peak = max(peak, abs(sample))
         }
-        let rms = (recent.isEmpty ? 0 : (sumSquares / Float(recent.count)).squareRoot()) * Self.gain
+        let rms = (recent.isEmpty ? 0 : (sumSquares / Float(recent.count)).squareRoot()) * gain
 
         currentAmplitude = rms
-        peakAmplitude = peak * Self.gain
+        peakAmplitude = peak * gain
         elapsedTime = CFAbsoluteTimeGetCurrent() - startTime
         waveform = waveformBuffer.snapshot()
 
