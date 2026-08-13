@@ -11,6 +11,7 @@ struct MonitorView: View {
     @State private var alarm = AlarmPlayer()
     @State private var exportURL: URL?
     @State private var showInputPicker = false
+    @State private var calibrationTask: Task<BreathBand?, Never>?
 
     var body: some View {
         ZStack {
@@ -28,6 +29,7 @@ struct MonitorView: View {
                 .padding(.bottom, 4)
 
                 if engine.isRunning { statusStrip }
+                calibrationRow
                 sensitivitySlider
                 controlBar
             }
@@ -82,6 +84,10 @@ struct MonitorView: View {
                     .fontWeight(.semibold)
                     .foregroundStyle(engine.silenceDuration > 20 ? Color.red : Color.orange)
             }
+            if engine.filterEnabled, let band = engine.band {
+                Text("\(Int(band.lowHz))–\(Int(band.highHz)) Hz")
+                    .foregroundStyle(.green)
+            }
             if engine.isRecording {
                 HStack(spacing: 4) {
                     Circle().fill(.red).frame(width: 8, height: 8)
@@ -94,11 +100,94 @@ struct MonitorView: View {
         .padding(.vertical, 6)
     }
 
+    // MARK: - Calibration
+
+    /// Learns the patient's breath band from a room sample vs a breathing
+    /// sample, then bandpasses the mic to it.
+    @ViewBuilder
+    private var calibrationRow: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if engine.calibrationPhase != .idle {
+                HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(calibrationPrompt)
+                            .font(.caption.weight(.semibold))
+                        ProgressView(value: engine.calibrationProgress)
+                            .tint(.green)
+                    }
+                    Button("Cancel") { engine.cancelCalibration() }
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(minHeight: 44)
+                }
+            } else {
+                HStack(spacing: 8) {
+                    Button {
+                        calibrationTask = Task { await engine.calibrate() }
+                    } label: {
+                        Label(engine.band == nil ? "Calibrate Breathing" : "Recalibrate",
+                              systemImage: "waveform.badge.magnifyingglass")
+                            .font(.caption.weight(.semibold))
+                            .frame(minHeight: 44)
+                            .padding(.horizontal, 4)
+                    }
+                    .buttonStyle(.glass)
+                    .disabled(!engine.isRunning)
+
+                    if let band = engine.band {
+                        Button {
+                            engine.filterEnabled.toggle()
+                        } label: {
+                            Text(engine.filterEnabled ? "Filtered" : "Raw")
+                                .font(.caption.weight(.semibold))
+                                .frame(minHeight: 44)
+                                .padding(.horizontal, 6)
+                        }
+                        .buttonStyle(.glass)
+                        .tint(engine.filterEnabled ? .green : nil)
+                        .accessibilityLabel(engine.filterEnabled
+                                            ? "Breath filter on" : "Breath filter off")
+
+                        Text("\(Int(band.lowHz))–\(Int(band.highHz)) Hz")
+                            .font(.caption2.monospacedDigit())
+                            .foregroundStyle(.secondary)
+
+                        Spacer(minLength: 0)
+
+                        Button("Clear") { engine.clearCalibration() }
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .frame(minHeight: 44)
+                    } else {
+                        Spacer(minLength: 0)
+                    }
+                }
+            }
+
+            if let error = engine.calibrationError {
+                Text(error)
+                    .font(.caption2)
+                    .foregroundStyle(.red)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.bottom, 2)
+    }
+
+    private var calibrationPrompt: String {
+        switch engine.calibrationPhase {
+        case .ambient: "Stay quiet — sampling the room"
+        case .breathing: "Now breathe normally into the mic"
+        case .analyzing: "Analyzing…"
+        case .idle: ""
+        }
+    }
+
     // MARK: - Sensitivity
 
-    /// Mic gain. Scales the trace and the silence threshold together, so
-    /// turning it up also makes the alarm slower to fire — the label spells
-    /// that out rather than leaving it as a hidden side effect.
+    /// Mic gain, 10x-500x on a log-spaced ladder. Display only: silence
+    /// detection runs at the reference gain, so moving this cannot change
+    /// when the no-airflow alarm fires.
     private var sensitivitySlider: some View {
         @Bindable var engine = engine
 
@@ -117,9 +206,12 @@ struct MonitorView: View {
                 Image(systemName: "mic")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
-                Slider(value: $engine.gain,
-                       in: AudioEngine.gainRange,
-                       step: 5) {
+                Slider(value: Binding(
+                            get: { Double(AudioEngine.step(forGain: engine.gain)) },
+                            set: { engine.gain = AudioEngine.gain(forStep: Int($0.rounded())) }
+                       ),
+                       in: 0...Double(AudioEngine.gainSteps.count - 1),
+                       step: 1) {
                     Text("Mic sensitivity")
                 } minimumValueLabel: {
                     EmptyView()

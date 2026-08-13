@@ -35,11 +35,29 @@ targets:
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: 5BF427L96N
 
+  PretrachealMonitorTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "26.0"
+    sources:
+      - path: Tests
+    dependencies:
+      - target: PretrachealMonitor
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.pretracheal.monitor.tests
+        GENERATE_INFOPLIST_FILE: true
+
 schemes:
   PretrachealMonitor:
     build:
       targets:
         PretrachealMonitor: all
+        PretrachealMonitorTests: all
+    test:
+      config: Debug
+      targets:
+        - PretrachealMonitorTests
     run:
       config: Debug
     archive:
