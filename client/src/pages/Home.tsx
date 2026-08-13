@@ -28,6 +28,7 @@ import {
   Circle,
   Download,
   Mic,
+  Activity,
   Maximize,
   Minimize,
   Sun,
@@ -161,6 +162,11 @@ export default function Home() {
               Silent: {engine.silenceDuration.toFixed(0)}s
             </span>
           )}
+          {engine.filterEnabled && engine.band && (
+            <span className="font-data type-caption1 text-[#32d74b]">
+              {engine.band.lowHz}-{engine.band.highHz} Hz
+            </span>
+          )}
           {engine.isRecording && (
             <span className="flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-destructive rec-blink" />
@@ -169,6 +175,78 @@ export default function Home() {
           )}
         </div>
       )}
+
+      {/* Breath calibration - learns the patient's breath band from a room
+          sample vs a breathing sample, then bandpasses the mic to it. */}
+      <div className="shrink-0 px-4 pb-1.5">
+        {engine.calibrationPhase !== 'idle' ? (
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <p className="type-caption1 text-foreground font-semibold">
+                {engine.calibrationPhase === 'ambient'
+                  ? 'Stay quiet - sampling the room'
+                  : engine.calibrationPhase === 'breathing'
+                    ? 'Now breathe normally into the mic'
+                    : 'Analyzing...'}
+              </p>
+              <div className="h-1 mt-1 rounded-full bg-secondary overflow-hidden">
+                <div
+                  className="h-full bg-[#32d74b] transition-[width] duration-100"
+                  style={{ width: `${Math.round(engine.calibrationProgress * 100)}%` }}
+                />
+              </div>
+            </div>
+            <button
+              onClick={engine.cancelCalibration}
+              className="min-h-[44px] px-3 type-caption1 text-muted-foreground"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => engine.calibrate()}
+              disabled={!engine.isRunning}
+              className="flex items-center gap-1.5 min-h-[44px] px-3 ios-rounded bg-secondary text-secondary-foreground type-caption1 transition-all active:scale-95 disabled:opacity-30"
+              aria-label="Calibrate breathing frequency"
+            >
+              <Activity className="w-3.5 h-3.5" />
+              {engine.band ? 'Recalibrate' : 'Calibrate Breathing'}
+            </button>
+
+            {engine.band && (
+              <>
+                <button
+                  onClick={() => engine.setFilterEnabled(!engine.filterEnabled)}
+                  className={`min-h-[44px] px-3 ios-rounded type-caption1 font-semibold transition-all active:scale-95 ${
+                    engine.filterEnabled
+                      ? 'bg-[#32d74b]/15 text-[#32d74b]'
+                      : 'bg-secondary text-muted-foreground'
+                  }`}
+                  aria-pressed={engine.filterEnabled}
+                >
+                  {engine.filterEnabled ? 'Filtered' : 'Raw'}
+                </button>
+                <span className="font-data type-caption2 text-muted-foreground">
+                  {engine.band.lowHz}-{engine.band.highHz} Hz
+                </span>
+                <div className="flex-1" />
+                <button
+                  onClick={engine.clearCalibration}
+                  className="min-h-[44px] px-2 type-caption2 text-muted-foreground"
+                >
+                  Clear
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
+        {engine.calibrationError && (
+          <p className="type-caption2 text-destructive mt-1">{engine.calibrationError}</p>
+        )}
+      </div>
 
       {/* Mic sensitivity - scales the trace and, with it, the silence
           threshold, so raising it also makes the alarm slower to fire. */}

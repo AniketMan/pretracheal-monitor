@@ -20,6 +20,7 @@
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { pickBreathBand, type BreathBand } from '@/lib/breathBand';
 
 // -- Configuration constants --
 // These mirror the original Python script parameters
@@ -65,6 +66,44 @@ export function sliderPositionForGain(gain: number): number {
 const THRESHOLD = 1; // amplitude below which audio is "silent"
 const MAX_SILENCE_DURATION = 30; // seconds before alarm fires (matches PDF spec)
 const BUFFER_LENGTH = Math.floor(SAMPLE_RATE * WINDOW_DURATION);
+
+const BAND_STORAGE_KEY = 'monitor.breathBand';
+const FILTER_STORAGE_KEY = 'monitor.breathFilterEnabled';
+
+/** How long each calibration phase listens, in seconds. */
+export const CALIBRATION_AMBIENT_SECONDS = 3;
+export const CALIBRATION_BREATH_SECONDS = 6;
+
+export type CalibrationPhase = 'idle' | 'ambient' | 'breathing' | 'analyzing';
+
+function loadStoredBand(): BreathBand | null {
+  try {
+    const raw = window.localStorage.getItem(BAND_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as BreathBand;
+    // Guard against a hand-edited or half-written entry.
+    if (
+      typeof parsed?.lowHz !== 'number' ||
+      typeof parsed?.highHz !== 'number' ||
+      typeof parsed?.centerHz !== 'number' ||
+      typeof parsed?.q !== 'number' ||
+      !(parsed.highHz > parsed.lowHz)
+    ) {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function loadStoredFilterEnabled(): boolean {
+  try {
+    return window.localStorage.getItem(FILTER_STORAGE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
 
 /** Reads the persisted mic sensitivity, falling back to the default. */
 function loadStoredGain(): number {
@@ -125,6 +164,64 @@ export function useAudioEngine() {
       // Storage unavailable -- the setting just won't persist.
     }
   }, []);
+
+  // -- Breath calibration --
+  const [band, setBandState] = useState<BreathBand | null>(loadStoredBand);
+  const [filterEnabled, setFilterEnabledState] = useState<boolean>(loadStoredFilterEnabled);
+  const [calibrationPhase, setCalibrationPhase] = useState<CalibrationPhase>('idle');
+  const [calibrationProgress, setCalibrationProgress] = useState(0);
+  const [calibrationError, setCalibrationError] = useState<string | null>(null);
+  const filterRef = useRef<BiquadFilterNode | null>(null);
+  const recorderRef = useRef<ScriptProcessorNode | null>(null);
+  const bandRef = useRef<BreathBand | null>(band);
+  const filterEnabledRef = useRef(filterEnabled);
+  const calibrationAbortRef = useRef(false);
+
+  /** Points the biquad at the active band, or makes it a no-op pass-through. */
+  const applyBandToFilter = useCallback((filter: BiquadFilterNode | null) => {
+    if (!filter) return;
+    const active = filterEnabledRef.current ? bandRef.current : null;
+    if (active) {
+      filter.type = 'bandpass';
+      filter.frequency.value = active.centerHz;
+      filter.Q.value = active.q;
+    } else {
+      // allpass at Q=0.0001 is flat across the spectrum -- simpler and
+      // glitch-free compared with rewiring the graph on every toggle.
+      filter.type = 'allpass';
+      filter.frequency.value = 1000;
+      filter.Q.value = 0.0001;
+    }
+  }, []);
+
+  const setBand = useCallback(
+    (next: BreathBand | null) => {
+      bandRef.current = next;
+      setBandState(next);
+      try {
+        if (next) window.localStorage.setItem(BAND_STORAGE_KEY, JSON.stringify(next));
+        else window.localStorage.removeItem(BAND_STORAGE_KEY);
+      } catch {
+        // Storage unavailable -- the profile just won't persist.
+      }
+      applyBandToFilter(filterRef.current);
+    },
+    [applyBandToFilter]
+  );
+
+  const setFilterEnabled = useCallback(
+    (next: boolean) => {
+      filterEnabledRef.current = next;
+      setFilterEnabledState(next);
+      try {
+        window.localStorage.setItem(FILTER_STORAGE_KEY, next ? '1' : '0');
+      } catch {
+        // Storage unavailable -- the setting just won't persist.
+      }
+      applyBandToFilter(filterRef.current);
+    },
+    [applyBandToFilter]
+  );
 
   // -- Refs for audio pipeline (not in React state to avoid re-renders) --
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -227,17 +324,33 @@ export function useAudioEngine() {
           buffer.copyWithin(0, input.length);
           buffer.set(input, buffer.length - input.length);
 
-          // Record if active (use ref, not state -- closure would capture stale value)
-          if (isRecordingRef.current) {
-            recordedChunksRef.current.push(new Float32Array(input));
-          }
         };
 
-        source.connect(analyser);
+        // Bandpass sits between the mic and everything the UI reads, so when a
+        // calibration profile is active the trace and the silence detector both
+        // see breath-band audio only. Bypassed (all-pass) until calibrated.
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filterRef.current = filter;
+        applyBandToFilter(filter);
+
+        source.connect(filter);
+        filter.connect(analyser);
         analyser.connect(processor);
         // Connect processor to destination to keep it alive (required by spec)
         // Output is silence since we copy input but don't modify output
         processor.connect(ctx.destination);
+
+        // Recording taps the *raw* source, deliberately upstream of the filter:
+        // an exported WAV should be the real audio, not a filtered derivative.
+        const recorder = ctx.createScriptProcessor(1024, 1, 1);
+        recorderRef.current = recorder;
+        recorder.onaudioprocess = (e) => {
+          if (!isRecordingRef.current) return;
+          recordedChunksRef.current.push(new Float32Array(e.inputBuffer.getChannelData(0)));
+        };
+        source.connect(recorder);
+        recorder.connect(ctx.destination);
 
         // Reset state
         waveformBufferRef.current = new Float32Array(BUFFER_LENGTH);
@@ -329,6 +442,16 @@ export function useAudioEngine() {
       processorRef.current.onaudioprocess = null;
       processorRef.current = null;
     }
+    if (recorderRef.current) {
+      recorderRef.current.disconnect();
+      recorderRef.current.onaudioprocess = null;
+      recorderRef.current = null;
+    }
+    if (filterRef.current) {
+      filterRef.current.disconnect();
+      filterRef.current = null;
+    }
+    calibrationAbortRef.current = true;
     if (sourceRef.current) {
       sourceRef.current.disconnect();
       sourceRef.current = null;
@@ -424,6 +547,111 @@ export function useAudioEngine() {
     [start, stop]
   );
 
+  // -- Breath calibration --
+  //
+  // Averages the FFT magnitude spectrum over two phases (room, then patient)
+  // and hands both to pickBreathBand. Runs off the analyser, which sits behind
+  // the filter -- so the filter is forced flat for the duration, otherwise each
+  // calibration would be measuring the previous one's passband.
+  const calibrate = useCallback(async () => {
+    if (!isRunningRef.current || !analyserRef.current || !audioContextRef.current) {
+      setCalibrationError('Start monitoring before calibrating.');
+      return null;
+    }
+
+    const analyser = analyserRef.current;
+    const ctx = audioContextRef.current;
+    const filter = filterRef.current;
+
+    const wasEnabled = filterEnabledRef.current;
+    filterEnabledRef.current = false;
+    applyBandToFilter(filter);
+
+    calibrationAbortRef.current = false;
+    setCalibrationError(null);
+
+    const bins = analyser.frequencyBinCount;
+    const binHz = ctx.sampleRate / analyser.fftSize;
+    const frame = new Float32Array(bins);
+
+    /** Averages dB spectra over `seconds`, reporting 0..1 progress. */
+    const collect = (seconds: number, onProgress: (fraction: number) => void) =>
+      new Promise<Float32Array | null>((resolve) => {
+        const sum = new Float64Array(bins);
+        let frames = 0;
+        const started = performance.now();
+
+        const tick = () => {
+          if (calibrationAbortRef.current || !isRunningRef.current) {
+            resolve(null);
+            return;
+          }
+          analyser.getFloatFrequencyData(frame);
+          for (let i = 0; i < bins; i++) {
+            // Silent bins report -Infinity; floor them so the average stays finite.
+            sum[i] += Number.isFinite(frame[i]) ? frame[i] : -140;
+          }
+          frames++;
+
+          const elapsed = (performance.now() - started) / 1000;
+          onProgress(Math.min(elapsed / seconds, 1));
+
+          if (elapsed >= seconds) {
+            const avg = new Float32Array(bins);
+            for (let i = 0; i < bins; i++) avg[i] = sum[i] / Math.max(frames, 1);
+            resolve(avg);
+          } else {
+            requestAnimationFrame(tick);
+          }
+        };
+        requestAnimationFrame(tick);
+      });
+
+    try {
+      setCalibrationPhase('ambient');
+      setCalibrationProgress(0);
+      const ambient = await collect(CALIBRATION_AMBIENT_SECONDS, setCalibrationProgress);
+      if (!ambient) return null;
+
+      setCalibrationPhase('breathing');
+      setCalibrationProgress(0);
+      const breathing = await collect(CALIBRATION_BREATH_SECONDS, setCalibrationProgress);
+      if (!breathing) return null;
+
+      setCalibrationPhase('analyzing');
+      const picked = pickBreathBand(ambient, breathing, binHz);
+
+      if (!picked) {
+        setCalibrationError(
+          'Breathing never rose clearly above the room noise. Move the mic closer and try again.'
+        );
+        filterEnabledRef.current = wasEnabled;
+        applyBandToFilter(filter);
+        return null;
+      }
+
+      setBand(picked);
+      setFilterEnabled(true);
+      return picked;
+    } finally {
+      setCalibrationPhase('idle');
+      setCalibrationProgress(0);
+      // setBand/setFilterEnabled already re-applied the filter on success; this
+      // covers the aborted paths.
+      applyBandToFilter(filterRef.current);
+    }
+  }, [applyBandToFilter, setBand, setFilterEnabled]);
+
+  const cancelCalibration = useCallback(() => {
+    calibrationAbortRef.current = true;
+  }, []);
+
+  const clearCalibration = useCallback(() => {
+    setBand(null);
+    setFilterEnabled(false);
+    setCalibrationError(null);
+  }, [setBand, setFilterEnabled]);
+
   // -- Dismiss alarm --
   const dismissAlarm = useCallback(() => {
     isAlarmRef.current = false;
@@ -462,6 +690,16 @@ export function useAudioEngine() {
     switchDevice,
     dismissAlarm,
     refreshDevices,
+    // Breath calibration
+    band,
+    filterEnabled,
+    setFilterEnabled,
+    calibrate,
+    cancelCalibration,
+    clearCalibration,
+    calibrationPhase,
+    calibrationProgress,
+    calibrationError,
     // Sensitivity
     gain,
     setGain,
