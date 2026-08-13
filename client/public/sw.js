@@ -1,17 +1,20 @@
 // Service Worker for Pretracheal Air Flow Monitor PWA
 // Provides offline capability by caching all app assets on first load.
 
-const CACHE_NAME = 'pretracheal-monitor-v1';
+// __BASE_URL__ is rewritten at build time (scripts/apply-base.mjs) so the
+// deployed paths match Vite's base. Do not hand-edit the built copy.
+const BASE = '__BASE_URL__';
+
+// Bump this whenever the shell changes. `activate` deletes every cache whose
+// name doesn't match, which is what evicts a stale precached index.html from
+// browsers that installed an older build.
+const CACHE_NAME = 'pretracheal-monitor-v2';
 
 // On install, cache the app shell
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll([
-        '/',
-        '/index.html',
-        '/manifest.json'
-      ]);
+      return cache.addAll([BASE, BASE + 'index.html', BASE + 'manifest.json']);
     })
   );
   self.skipWaiting();
