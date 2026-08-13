@@ -26,10 +26,29 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 const SAMPLE_RATE = 44100;
 const FFT_SIZE = 2048;
 const WINDOW_DURATION = 3.0; // seconds of visible waveform
-const GAIN = 50; // display amplification
+const GAIN = 50; // default display amplification
+const GAIN_MIN = 10;
+const GAIN_MAX = 150;
+const GAIN_STEP = 5;
+const GAIN_STORAGE_KEY = 'monitor.gain';
+
 const THRESHOLD = 1; // amplitude below which audio is "silent"
 const MAX_SILENCE_DURATION = 30; // seconds before alarm fires (matches PDF spec)
 const BUFFER_LENGTH = Math.floor(SAMPLE_RATE * WINDOW_DURATION);
+
+/** Reads the persisted mic sensitivity, falling back to the default. */
+function loadStoredGain(): number {
+  try {
+    const raw = window.localStorage.getItem(GAIN_STORAGE_KEY);
+    if (raw === null) return GAIN;
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed)) return GAIN;
+    return Math.min(Math.max(parsed, GAIN_MIN), GAIN_MAX);
+  } catch {
+    // Private browsing / storage disabled -- fall back to the default.
+    return GAIN;
+  }
+}
 
 export interface AudioDevice {
   deviceId: string;
@@ -60,6 +79,22 @@ export function useAudioEngine() {
   const [devices, setDevices] = useState<AudioDevice[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [peakAmplitude, setPeakAmplitude] = useState(0);
+
+  // Mic sensitivity. The render loop reads it through a ref so changes take
+  // effect immediately instead of waiting for the loop to be re-created.
+  const [gain, setGainState] = useState<number>(loadStoredGain);
+  const gainRef = useRef(gain);
+
+  const setGain = useCallback((value: number) => {
+    const clamped = Math.min(Math.max(value, GAIN_MIN), GAIN_MAX);
+    gainRef.current = clamped;
+    setGainState(clamped);
+    try {
+      window.localStorage.setItem(GAIN_STORAGE_KEY, String(clamped));
+    } catch {
+      // Storage unavailable -- the setting just won't persist.
+    }
+  }, []);
 
   // -- Refs for audio pipeline (not in React state to avoid re-renders) --
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -200,12 +235,12 @@ export function useAudioEngine() {
           for (let i = 0; i < recentSamples.length; i++) {
             rms += recentSamples[i] * recentSamples[i];
           }
-          rms = Math.sqrt(rms / recentSamples.length) * GAIN;
+          rms = Math.sqrt(rms / recentSamples.length) * gainRef.current;
 
           // Peak amplitude (max absolute value in recent window)
           let peak = 0;
           for (let i = 0; i < recentSamples.length; i++) {
-            const abs = Math.abs(recentSamples[i]) * GAIN;
+            const abs = Math.abs(recentSamples[i]) * gainRef.current;
             if (abs > peak) peak = abs;
           }
 
@@ -391,6 +426,12 @@ export function useAudioEngine() {
     switchDevice,
     dismissAlarm,
     refreshDevices,
+    // Sensitivity
+    gain,
+    setGain,
+    GAIN_MIN,
+    GAIN_MAX,
+    GAIN_STEP,
     // Constants (exposed for UI display)
     GAIN,
     THRESHOLD,

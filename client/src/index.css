@@ -329,6 +329,59 @@
     animation: live-pulse 2s ease-in-out infinite;
   }
 
+  /* Mic sensitivity slider (HIG: 44pt tappable area, iOS green track) */
+  .sensitivity-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    height: 44px;
+    cursor: pointer;
+  }
+  /* WebKit has no ::-webkit-slider-progress, so the filled portion is a
+     gradient stop driven by --pct, set inline from the current value. */
+  .sensitivity-slider::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 2px;
+    background: linear-gradient(
+      to right,
+      #34c759 var(--pct, 0%),
+      var(--muted) var(--pct, 0%)
+    );
+  }
+  .sensitivity-slider::-moz-range-track {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--muted);
+  }
+  .sensitivity-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 26px;
+    height: 26px;
+    margin-top: -11px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 0.5px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  }
+  .sensitivity-slider::-moz-range-thumb {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 0.5px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  }
+  .sensitivity-slider::-moz-range-progress {
+    height: 4px;
+    border-radius: 2px;
+    background: #34c759;
+  }
+  .sensitivity-slider:focus-visible {
+    outline: 2px solid #0a84ff;
+    outline-offset: 2px;
+  }
+
   /* Respect reduced motion preference */
   @media (prefers-reduced-motion: reduce) {
     .alarm-pulse,

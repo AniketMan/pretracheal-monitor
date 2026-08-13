@@ -13,7 +13,7 @@
  * Colors: iOS semantic system colors
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, type CSSProperties } from 'react';
 import { useAudioEngine } from '@/hooks/useAudioEngine';
 import { useTheme } from '@/contexts/ThemeContext';
 import WaveformCanvas from '@/components/WaveformCanvas';
@@ -34,7 +34,7 @@ export default function Home() {
   const engine = useAudioEngine();
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === 'dark';
-  const [gain] = useState(engine.GAIN);
+  const gain = engine.gain;
   const [showDevices, setShowDevices] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -165,6 +165,44 @@ export default function Home() {
           )}
         </div>
       )}
+
+      {/* Mic sensitivity - scales the trace and, with it, the silence
+          threshold, so raising it also makes the alarm slower to fire. */}
+      <div className="shrink-0 px-4 pb-1">
+        <div className="flex items-center justify-between mb-0.5">
+          <label htmlFor="sensitivity" className="type-caption1 text-muted-foreground">
+            Mic Sensitivity
+          </label>
+          <span
+            className={`font-data type-caption1 ${
+              gain === engine.GAIN ? 'text-muted-foreground' : 'text-foreground'
+            }`}
+          >
+            {gain}&times;
+          </span>
+        </div>
+        <div className="flex items-center gap-2.5">
+          <Mic className="w-3 h-3 text-muted-foreground shrink-0" />
+          <input
+            id="sensitivity"
+            type="range"
+            min={engine.GAIN_MIN}
+            max={engine.GAIN_MAX}
+            step={engine.GAIN_STEP}
+            value={gain}
+            onChange={(e) => engine.setGain(Number(e.target.value))}
+            style={
+              {
+                '--pct': `${((gain - engine.GAIN_MIN) / (engine.GAIN_MAX - engine.GAIN_MIN)) * 100}%`,
+              } as CSSProperties
+            }
+            className="sensitivity-slider flex-1"
+            aria-label="Microphone sensitivity"
+            aria-valuetext={`${gain} times amplification`}
+          />
+          <Mic className="w-4.5 h-4.5 text-muted-foreground shrink-0" />
+        </div>
+      </div>
 
       {/* Control bar - Liquid Glass material (HIG: Materials) */}
       <div
