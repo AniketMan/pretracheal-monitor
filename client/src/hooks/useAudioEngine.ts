@@ -20,7 +20,13 @@
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { pickBreathBand, type BreathBand } from '@/lib/breathBand';
+import {
+  bandStats,
+  classifyBreath,
+  pickBreathBand,
+  type BreathBand,
+  type GateVerdict,
+} from '@/lib/breathBand';
 
 // -- Configuration constants --
 // These mirror the original Python script parameters
@@ -176,6 +182,12 @@ export function useAudioEngine() {
   const bandRef = useRef<BreathBand | null>(band);
   const filterEnabledRef = useRef(filterEnabled);
   const calibrationAbortRef = useRef(false);
+  // Gate analysis needs the *raw* spectrum: the shape of what is out of band is
+  // exactly what distinguishes speech from breath, and the filter removes it.
+  const rawAnalyserRef = useRef<AnalyserNode | null>(null);
+  const [gateVerdict, setGateVerdict] = useState<GateVerdict>('no-profile');
+  const gateVerdictRef = useRef<GateVerdict>('no-profile');
+  const gateSpectrumRef = useRef<Float32Array>(new Float32Array(FFT_SIZE / 2));
 
   /** Points the biquad at the active band, or makes it a no-op pass-through. */
   const applyBandToFilter = useCallback((filter: BiquadFilterNode | null) => {
@@ -232,6 +244,8 @@ export function useAudioEngine() {
   const waveformBufferRef = useRef<Float32Array>(new Float32Array(BUFFER_LENGTH));
   const recordedChunksRef = useRef<Float32Array[]>([]);
   const silenceDurationRef = useRef(0);
+  /** When the current run of silence began, or null while sound is present. */
+  const silenceStartRef = useRef<number | null>(null);
   const isAlarmRef = useRef(false);
   const startTimeRef = useRef(0);
   const animFrameRef = useRef<number>(0);
@@ -334,6 +348,11 @@ export function useAudioEngine() {
         filterRef.current = filter;
         applyBandToFilter(filter);
 
+        const rawAnalyser = ctx.createAnalyser();
+        rawAnalyser.fftSize = FFT_SIZE;
+        rawAnalyserRef.current = rawAnalyser;
+        source.connect(rawAnalyser);
+
         source.connect(filter);
         filter.connect(analyser);
         analyser.connect(processor);
@@ -355,6 +374,7 @@ export function useAudioEngine() {
         // Reset state
         waveformBufferRef.current = new Float32Array(BUFFER_LENGTH);
         silenceDurationRef.current = 0;
+        silenceStartRef.current = null;
         isAlarmRef.current = false;
         startTimeRef.current = performance.now();
         isRunningRef.current = true;
@@ -384,7 +404,30 @@ export function useAudioEngine() {
           // Silence detection runs at the reference gain, not the user's, so
           // turning sensitivity up to see a faint trace cannot quietly
           // desensitise the alarm.
-          const detectionRms = rawRms * GAIN;
+          let detectionRms = rawRms * GAIN;
+
+          // Breath gate: with a calibrated profile active, sound that does not
+          // look like the calibrated breathing (room speech, alarms, knocks)
+          // is not counted as airflow. Rejecting only ever makes the alarm
+          // fire sooner, never later.
+          const activeBand = filterEnabledRef.current ? bandRef.current : null;
+          const rawAnalyserNode = rawAnalyserRef.current;
+          if (activeBand && rawAnalyserNode) {
+            const spectrum = gateSpectrumRef.current;
+            rawAnalyserNode.getFloatFrequencyData(spectrum);
+            const binHz = ctx.sampleRate / rawAnalyserNode.fftSize;
+            const verdict = classifyBreath(bandStats(spectrum, binHz, activeBand), activeBand);
+            if (verdict !== gateVerdictRef.current) {
+              gateVerdictRef.current = verdict;
+              setGateVerdict(verdict);
+            }
+            if (verdict === 'below-ambient' || verdict === 'not-breath-shaped') {
+              detectionRms = 0;
+            }
+          } else if (gateVerdictRef.current !== 'no-profile') {
+            gateVerdictRef.current = 'no-profile';
+            setGateVerdict('no-profile');
+          }
 
           // Peak amplitude (max absolute value in recent window)
           let peak = 0;
@@ -394,9 +437,17 @@ export function useAudioEngine() {
           }
 
           // Silence detection
+          // Silence is measured from a wall-clock timestamp rather than
+          // accumulated per frame. Per-frame accumulation assumed 60fps, so on
+          // a 30Hz display -- or a throttled/background tab, where rAF drops to
+          // a few frames per second -- the 30s apnea alarm took two to three
+          // times longer than MAX_SILENCE_DURATION to fire. A timestamp is
+          // exact regardless of frame rate.
           if (detectionRms < THRESHOLD) {
-            silenceDurationRef.current += 1 / 60; // approximate frame time
+            if (silenceStartRef.current === null) silenceStartRef.current = now;
+            silenceDurationRef.current = (now - silenceStartRef.current) / 1000;
           } else {
+            silenceStartRef.current = null;
             silenceDurationRef.current = 0;
             if (isAlarmRef.current) {
               isAlarmRef.current = false;
@@ -459,6 +510,10 @@ export function useAudioEngine() {
     if (analyserRef.current) {
       analyserRef.current.disconnect();
       analyserRef.current = null;
+    }
+    if (rawAnalyserRef.current) {
+      rawAnalyserRef.current.disconnect();
+      rawAnalyserRef.current = null;
     }
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
@@ -655,6 +710,9 @@ export function useAudioEngine() {
   // -- Dismiss alarm --
   const dismissAlarm = useCallback(() => {
     isAlarmRef.current = false;
+    // Restart the clock, not just the counter: leaving the old timestamp in
+    // place would re-trip the alarm on the very next frame.
+    silenceStartRef.current = null;
     silenceDurationRef.current = 0;
     setIsAlarm(false);
     setSilenceDuration(0);
@@ -692,6 +750,7 @@ export function useAudioEngine() {
     refreshDevices,
     // Breath calibration
     band,
+    gateVerdict,
     filterEnabled,
     setFilterEnabled,
     calibrate,

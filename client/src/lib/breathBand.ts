@@ -31,6 +31,95 @@ export interface BreathBand {
   q: number;
   /** Peak breath-over-ambient margin, in dB. */
   peakSnrDb: number;
+
+  // -- Gate reference levels, measured during the same calibration. --
+  // Optional so profiles saved by earlier builds still load; the gate stays
+  // off until the patient is recalibrated.
+
+  /** Mean in-band level of the room, dB. */
+  ambientInBandDb?: number;
+  /**
+   * How far in-band level sat above out-of-band level while the patient
+   * breathed, dB. Speech and other room sound spill across the spectrum, so
+   * they score far lower on this than breath does.
+   */
+  dominanceDb?: number;
+}
+
+export interface BandStats {
+  /** Mean level inside the passband, dB. */
+  inBandDb: number;
+  /** Mean level outside the passband but within the analysed range, dB. */
+  outBandDb: number;
+}
+
+/** Mean in-band and out-of-band level for one spectrum. */
+export function bandStats(
+  spectrumDb: ArrayLike<number>,
+  binHz: number,
+  band: Pick<BreathBand, 'lowHz' | 'highHz'>
+): BandStats {
+  let inSum = 0;
+  let inCount = 0;
+  let outSum = 0;
+  let outCount = 0;
+
+  const firstBin = Math.max(1, Math.floor(BAND_FLOOR_HZ / binHz));
+  const lastBin = Math.min(spectrumDb.length - 1, Math.ceil(BAND_CEILING_HZ / binHz));
+
+  for (let i = firstBin; i <= lastBin; i++) {
+    const value = spectrumDb[i];
+    if (!Number.isFinite(value)) continue;
+    const hz = i * binHz;
+    if (hz >= band.lowHz && hz <= band.highHz) {
+      inSum += value;
+      inCount++;
+    } else {
+      outSum += value;
+      outCount++;
+    }
+  }
+
+  return {
+    inBandDb: inCount ? inSum / inCount : -140,
+    outBandDb: outCount ? outSum / outCount : -140,
+  };
+}
+
+/** In-band level must clear the calibrated room level by this much (dB). */
+export const GATE_LEVEL_MARGIN_DB = 6;
+
+/** Allowed shortfall against the calibrated breath dominance (dB). */
+export const GATE_DOMINANCE_TOLERANCE_DB = 6;
+
+export type GateVerdict = 'breath' | 'below-ambient' | 'not-breath-shaped' | 'no-profile';
+
+/**
+ * Decides whether what the mic is hearing right now looks like the calibrated
+ * breathing, or like something else in the room.
+ *
+ * Two independent conditions, both derived from the calibration:
+ *   1. in-band level has to clear the calibrated room level by a margin;
+ *   2. in-band level has to dominate out-of-band level nearly as much as it
+ *      did while the patient was breathing. Speech, alarms and dropped trays
+ *      put comparable energy outside the band, so they fail this even when
+ *      they are loud enough to pass (1).
+ *
+ * Rejecting a sound means it is *not* treated as airflow, so the gate can only
+ * ever make the no-airflow alarm fire sooner. It cannot mask apnea.
+ */
+export function classifyBreath(stats: BandStats, profile: BreathBand): GateVerdict {
+  if (profile.ambientInBandDb === undefined || profile.dominanceDb === undefined) {
+    return 'no-profile';
+  }
+  if (stats.inBandDb < profile.ambientInBandDb + GATE_LEVEL_MARGIN_DB) {
+    return 'below-ambient';
+  }
+  const dominance = stats.inBandDb - stats.outBandDb;
+  if (dominance < profile.dominanceDb - GATE_DOMINANCE_TOLERANCE_DB) {
+    return 'not-breath-shaped';
+  }
+  return 'breath';
 }
 
 /**
@@ -92,11 +181,17 @@ export function pickBreathBand(
   const centerHz = Math.sqrt(lowHz * highHz);
   const q = centerHz / Math.max(highHz - lowHz, 1);
 
+  const rounded = { lowHz: Math.round(lowHz), highHz: Math.round(highHz) };
+  // Reference levels for the runtime gate, measured from the same two spectra.
+  const ambientStats = bandStats(ambientDb, binHz, rounded);
+  const breathStats = bandStats(breathDb, binHz, rounded);
+
   return {
-    lowHz: Math.round(lowHz),
-    highHz: Math.round(highHz),
+    ...rounded,
     centerHz: Math.round(centerHz),
     q: Number(q.toFixed(3)),
     peakSnrDb: Number(peakSnr.toFixed(1)),
+    ambientInBandDb: Number(ambientStats.inBandDb.toFixed(1)),
+    dominanceDb: Number((breathStats.inBandDb - breathStats.outBandDb).toFixed(1)),
   };
 }

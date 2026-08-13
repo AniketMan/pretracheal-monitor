@@ -167,6 +167,11 @@ export default function Home() {
               {engine.band.lowHz}-{engine.band.highHz} Hz
             </span>
           )}
+          {engine.gateVerdict === 'not-breath-shaped' && (
+            <span className="type-caption1 font-semibold text-[#ff9f0a]">
+              Room noise ignored
+            </span>
+          )}
           {engine.isRecording && (
             <span className="flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-destructive rec-blink" />
