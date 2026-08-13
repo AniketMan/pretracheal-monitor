@@ -47,13 +47,14 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.pretracheal.monitor.tests
         GENERATE_INFOPLIST_FILE: true
+        DEVELOPMENT_TEAM: 5BF427L96N
 
 schemes:
   PretrachealMonitor:
     build:
       targets:
         PretrachealMonitor: all
-        PretrachealMonitorTests: all
+        PretrachealMonitorTests: [test]
     test:
       config: Debug
       targets:
