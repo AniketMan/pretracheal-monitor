@@ -28,9 +28,39 @@ const FFT_SIZE = 2048;
 const WINDOW_DURATION = 3.0; // seconds of visible waveform
 const GAIN = 50; // default display amplification
 const GAIN_MIN = 10;
-const GAIN_MAX = 150;
-const GAIN_STEP = 5;
+const GAIN_MAX = 500;
 const GAIN_STORAGE_KEY = 'monitor.gain';
+
+/**
+ * The slider steps through a fixed ladder of gain values spaced roughly
+ * logarithmically, so the 10x-100x region where useful adjustments live keeps
+ * most of the travel instead of being squeezed into the first fifth of the
+ * track. A ladder rather than a continuous curve because rounding a continuous
+ * mapping back to readable values makes the thumb snap backwards mid-drag.
+ */
+export const GAIN_STEPS = [
+  10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 70, 80, 90, 100, 120, 140, 160,
+  180, 200, 250, 300, 350, 400, 450, 500,
+];
+
+const GAIN_SLIDER_MAX = GAIN_STEPS.length - 1;
+
+/** Slider index -> gain. */
+export function gainForSliderPosition(position: number): number {
+  const index = Math.min(Math.max(Math.round(position), 0), GAIN_SLIDER_MAX);
+  return GAIN_STEPS[index];
+}
+
+/** Gain -> nearest slider index. Stable round-trip with the above. */
+export function sliderPositionForGain(gain: number): number {
+  let best = 0;
+  for (let i = 1; i < GAIN_STEPS.length; i++) {
+    if (Math.abs(GAIN_STEPS[i] - gain) < Math.abs(GAIN_STEPS[best] - gain)) {
+      best = i;
+    }
+  }
+  return best;
+}
 
 const THRESHOLD = 1; // amplitude below which audio is "silent"
 const MAX_SILENCE_DURATION = 30; // seconds before alarm fires (matches PDF spec)
@@ -235,7 +265,13 @@ export function useAudioEngine() {
           for (let i = 0; i < recentSamples.length; i++) {
             rms += recentSamples[i] * recentSamples[i];
           }
-          rms = Math.sqrt(rms / recentSamples.length) * gainRef.current;
+          const rawRms = Math.sqrt(rms / recentSamples.length);
+          rms = rawRms * gainRef.current;
+
+          // Silence detection runs at the reference gain, not the user's, so
+          // turning sensitivity up to see a faint trace cannot quietly
+          // desensitise the alarm.
+          const detectionRms = rawRms * GAIN;
 
           // Peak amplitude (max absolute value in recent window)
           let peak = 0;
@@ -245,7 +281,7 @@ export function useAudioEngine() {
           }
 
           // Silence detection
-          if (rms < THRESHOLD) {
+          if (detectionRms < THRESHOLD) {
             silenceDurationRef.current += 1 / 60; // approximate frame time
           } else {
             silenceDurationRef.current = 0;
@@ -431,7 +467,7 @@ export function useAudioEngine() {
     setGain,
     GAIN_MIN,
     GAIN_MAX,
-    GAIN_STEP,
+    GAIN_SLIDER_MAX,
     // Constants (exposed for UI display)
     GAIN,
     THRESHOLD,

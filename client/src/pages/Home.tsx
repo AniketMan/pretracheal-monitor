@@ -14,7 +14,11 @@
  */
 
 import { useState, useCallback, useEffect, type CSSProperties } from 'react';
-import { useAudioEngine } from '@/hooks/useAudioEngine';
+import {
+  useAudioEngine,
+  gainForSliderPosition,
+  sliderPositionForGain,
+} from '@/hooks/useAudioEngine';
 import { useTheme } from '@/contexts/ThemeContext';
 import WaveformCanvas from '@/components/WaveformCanvas';
 import AlarmOverlay from '@/components/AlarmOverlay';
@@ -186,14 +190,14 @@ export default function Home() {
           <input
             id="sensitivity"
             type="range"
-            min={engine.GAIN_MIN}
-            max={engine.GAIN_MAX}
-            step={engine.GAIN_STEP}
-            value={gain}
-            onChange={(e) => engine.setGain(Number(e.target.value))}
+            min={0}
+            max={engine.GAIN_SLIDER_MAX}
+            step={1}
+            value={sliderPositionForGain(gain)}
+            onChange={(e) => engine.setGain(gainForSliderPosition(Number(e.target.value)))}
             style={
               {
-                '--pct': `${((gain - engine.GAIN_MIN) / (engine.GAIN_MAX - engine.GAIN_MIN)) * 100}%`,
+                '--pct': `${(sliderPositionForGain(gain) / engine.GAIN_SLIDER_MAX) * 100}%`,
               } as CSSProperties
             }
             className="sensitivity-slider flex-1"
