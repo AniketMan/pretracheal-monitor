@@ -1,4 +1,4 @@
-// Service Worker for Pretracheal Air Flow Monitor PWA
+// Service Worker for the Pneuma Sense PWA
 // Provides offline capability by caching all app assets on first load.
 
 // __BASE_URL__ is rewritten at build time (scripts/apply-base.mjs) so the

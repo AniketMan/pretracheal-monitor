@@ -1,7 +1,7 @@
 {
   "name": "Pneuma Sense",
   "short_name": "Pneuma Sense",
-  "description": "Real-time pretracheal air flow monitoring with waveform display and silence alarm",
+  "description": "Pneuma Sense - real-time pretracheal air flow monitoring with waveform display and silence alarm",
   "start_url": "__BASE_URL__",
   "display": "standalone",
   "orientation": "any",

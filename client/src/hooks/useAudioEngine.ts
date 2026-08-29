@@ -1,5 +1,5 @@
 /**
- * useAudioEngine - Core audio processing hook for the Pretracheal Air Flow Monitor.
+ * useAudioEngine - Core audio processing hook for Pneuma Sense.
  *
  * Responsibilities:
  *   1. Enumerate available audio input devices (mic selector for iOS 26+ input switching)
