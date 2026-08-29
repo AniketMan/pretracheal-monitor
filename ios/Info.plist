@@ -21,7 +21,7 @@
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>The monitor listens to the pretracheal stethoscope through the microphone to display the airflow waveform and raise a silence alarm.</string>
+	<string>Pneuma Sense listens to the pretracheal stethoscope through the microphone to display the airflow waveform and raise a silence alarm.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>
