@@ -59,7 +59,7 @@ struct MonitorView: View {
 
     private var header: some View {
         HStack {
-            Text("Pretracheal Monitor")
+            Text("Pneuma Sense")
                 .font(.headline)
             if engine.isRunning {
                 HStack(spacing: 4) {

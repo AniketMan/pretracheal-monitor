@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import PretrachealMonitor
+@testable import PneumaSense
 
 /// Mirrors client/src/lib/breathBand.test.ts so both platforms are held to the
 /// same behaviour.

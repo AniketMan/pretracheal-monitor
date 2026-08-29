@@ -1,4 +1,4 @@
-# Pretracheal Monitor — iOS
+# Pneuma Sense — iOS
 
 Native SwiftUI port of the web app on `main`. Same clinical behaviour, native
 audio stack and Liquid Glass controls.
@@ -7,8 +7,8 @@ audio stack and Liquid Glass controls.
 
 ```bash
 cd ios
-xcodegen generate          # regenerates PretrachealMonitor.xcodeproj
-open PretrachealMonitor.xcodeproj
+xcodegen generate          # regenerates PneumaSense.xcodeproj
+open PneumaSense.xcodeproj
 ```
 
 Requires Xcode 26 (iOS 26 SDK — `glassEffect` / `.buttonStyle(.glass)`),
@@ -17,7 +17,7 @@ XcodeGen (`brew install xcodegen`), Swift 6 with complete strict concurrency.
 Command-line build:
 
 ```bash
-xcodebuild -project ios/PretrachealMonitor.xcodeproj -scheme PretrachealMonitor -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build
+xcodebuild -project ios/PneumaSense.xcodeproj -scheme PneumaSense -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build
 ```
 
 The generated `.xcodeproj` and `build/` are ignored — `project.yml` is the source

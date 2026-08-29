@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct PretrachealMonitorApp: App {
+struct PneumaSenseApp: App {
     var body: some Scene {
         WindowGroup {
             MonitorView()
