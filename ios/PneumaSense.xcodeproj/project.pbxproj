@@ -1,0 +1,459 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		04CB58FC26B7295F817DF6AC /* WaveformChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29FCECE73665A2AB056A1206 /* WaveformChart.swift */; };
+		087D44A5D52512DDEAE5DB1A /* WaveformBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA193CF57B7CF9E5DECC27F2 /* WaveformBuffer.swift */; };
+		09A563FB703C1E9E0B1645DA /* AudioEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3072B4A027DF94655D298B8 /* AudioEngine.swift */; };
+		3976DCB15EA51F2B822731CB /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = AC8D0F487D183BF1932604D4 /* AppIcon.icon */; };
+		95B2D12050F1FB2B0AB435C6 /* BreathBandTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F85249692F770BEF8928FC9A /* BreathBandTests.swift */; };
+		96B6B3A9A0415280AE3C84B7 /* WAVEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFC06F238DBF0B2F3E8650E7 /* WAVEncoder.swift */; };
+		A3931FA724FAC36EBBA6085A /* BreathBand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16C84EB80AEBA3FE019F176A /* BreathBand.swift */; };
+		ADC8E3576E9ED37F543AB625 /* MonitorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84F5AC2B43BF243DA740F49D /* MonitorView.swift */; };
+		E6210DE6859F1C54AC64EA54 /* AlarmPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26BB76F24C21D54012B90034 /* AlarmPlayer.swift */; };
+		EB3AB9FC9BAFD885846A90FE /* PneumaSenseApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B4524EDDBE02A46D97BAE22 /* PneumaSenseApp.swift */; };
+		F306E79B72B67A78024CD3CD /* SpectrumAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7ADED0DA674763D301BED81D /* SpectrumAnalyzer.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		9A36E3094A667A39788FC3F7 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 65EA76324C8BBC10FE148E45 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 74675152A7DE34E1A3801601;
+			remoteInfo = PneumaSense;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		16C84EB80AEBA3FE019F176A /* BreathBand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BreathBand.swift; sourceTree = "<group>"; };
+		1B4524EDDBE02A46D97BAE22 /* PneumaSenseApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PneumaSenseApp.swift; sourceTree = "<group>"; };
+		26BB76F24C21D54012B90034 /* AlarmPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmPlayer.swift; sourceTree = "<group>"; };
+		29FCECE73665A2AB056A1206 /* WaveformChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaveformChart.swift; sourceTree = "<group>"; };
+		56A63AF6822B8975322300F1 /* PneumaSense.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = PneumaSense.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5E725295539F70C09550B420 /* PneumaSenseTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PneumaSenseTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		7ADED0DA674763D301BED81D /* SpectrumAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpectrumAnalyzer.swift; sourceTree = "<group>"; };
+		84F5AC2B43BF243DA740F49D /* MonitorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorView.swift; sourceTree = "<group>"; };
+		AC8D0F487D183BF1932604D4 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
+		E3072B4A027DF94655D298B8 /* AudioEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioEngine.swift; sourceTree = "<group>"; };
+		EA193CF57B7CF9E5DECC27F2 /* WaveformBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaveformBuffer.swift; sourceTree = "<group>"; };
+		EFC06F238DBF0B2F3E8650E7 /* WAVEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WAVEncoder.swift; sourceTree = "<group>"; };
+		F85249692F770BEF8928FC9A /* BreathBandTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BreathBandTests.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		4611AE0B721CC866E13130DC = {
+			isa = PBXGroup;
+			children = (
+				7F21EBBBCBC3F807B7C8C873 /* Sources */,
+				701E5145E0847BC06F3B9E42 /* Tests */,
+				AC8D0F487D183BF1932604D4 /* AppIcon.icon */,
+				993DAC4B47695D4440F1E58C /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		701E5145E0847BC06F3B9E42 /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				F85249692F770BEF8928FC9A /* BreathBandTests.swift */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
+		7F21EBBBCBC3F807B7C8C873 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				26BB76F24C21D54012B90034 /* AlarmPlayer.swift */,
+				E3072B4A027DF94655D298B8 /* AudioEngine.swift */,
+				16C84EB80AEBA3FE019F176A /* BreathBand.swift */,
+				84F5AC2B43BF243DA740F49D /* MonitorView.swift */,
+				1B4524EDDBE02A46D97BAE22 /* PneumaSenseApp.swift */,
+				7ADED0DA674763D301BED81D /* SpectrumAnalyzer.swift */,
+				EA193CF57B7CF9E5DECC27F2 /* WaveformBuffer.swift */,
+				29FCECE73665A2AB056A1206 /* WaveformChart.swift */,
+				EFC06F238DBF0B2F3E8650E7 /* WAVEncoder.swift */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		993DAC4B47695D4440F1E58C /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				56A63AF6822B8975322300F1 /* PneumaSense.app */,
+				5E725295539F70C09550B420 /* PneumaSenseTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		74675152A7DE34E1A3801601 /* PneumaSense */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6896A55054EF0C6E4184311F /* Build configuration list for PBXNativeTarget "PneumaSense" */;
+			buildPhases = (
+				D84FBFEFB5DC665B29EEC310 /* Sources */,
+				5E533012D2A615C03E3EB38F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = PneumaSense;
+			packageProductDependencies = (
+			);
+			productName = PneumaSense;
+			productReference = 56A63AF6822B8975322300F1 /* PneumaSense.app */;
+			productType = "com.apple.product-type.application";
+		};
+		88E08F83DF44B07527B6AA8F /* PneumaSenseTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1CF918F65BCAF6420C9292C3 /* Build configuration list for PBXNativeTarget "PneumaSenseTests" */;
+			buildPhases = (
+				8940579331C11D8F2C468910 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				671498F7F2AA113A478FC57D /* PBXTargetDependency */,
+			);
+			name = PneumaSenseTests;
+			packageProductDependencies = (
+			);
+			productName = PneumaSenseTests;
+			productReference = 5E725295539F70C09550B420 /* PneumaSenseTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		65EA76324C8BBC10FE148E45 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					74675152A7DE34E1A3801601 = {
+						DevelopmentTeam = 5BF427L96N;
+						ProvisioningStyle = Automatic;
+					};
+					88E08F83DF44B07527B6AA8F = {
+						DevelopmentTeam = 5BF427L96N;
+					};
+				};
+			};
+			buildConfigurationList = B3638F791FD8A1EBD6034EAE /* Build configuration list for PBXProject "PneumaSense" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 4611AE0B721CC866E13130DC;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 993DAC4B47695D4440F1E58C /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				74675152A7DE34E1A3801601 /* PneumaSense */,
+				88E08F83DF44B07527B6AA8F /* PneumaSenseTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		5E533012D2A615C03E3EB38F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3976DCB15EA51F2B822731CB /* AppIcon.icon in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		8940579331C11D8F2C468910 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				95B2D12050F1FB2B0AB435C6 /* BreathBandTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D84FBFEFB5DC665B29EEC310 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E6210DE6859F1C54AC64EA54 /* AlarmPlayer.swift in Sources */,
+				09A563FB703C1E9E0B1645DA /* AudioEngine.swift in Sources */,
+				A3931FA724FAC36EBBA6085A /* BreathBand.swift in Sources */,
+				ADC8E3576E9ED37F543AB625 /* MonitorView.swift in Sources */,
+				EB3AB9FC9BAFD885846A90FE /* PneumaSenseApp.swift in Sources */,
+				F306E79B72B67A78024CD3CD /* SpectrumAnalyzer.swift in Sources */,
+				96B6B3A9A0415280AE3C84B7 /* WAVEncoder.swift in Sources */,
+				087D44A5D52512DDEAE5DB1A /* WaveformBuffer.swift in Sources */,
+				04CB58FC26B7295F817DF6AC /* WaveformChart.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		671498F7F2AA113A478FC57D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 74675152A7DE34E1A3801601 /* PneumaSense */;
+			targetProxy = 9A36E3094A667A39788FC3F7 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		01D2D5D59B3418A64D5B80BF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				DEVELOPMENT_TEAM = 5BF427L96N;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.pneumasense.monitor.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PneumaSense.app/PneumaSense";
+			};
+			name = Release;
+		};
+		5D5B9D429371277D2828F8CC /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				DEVELOPMENT_TEAM = 5BF427L96N;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.pneumasense.monitor.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PneumaSense.app/PneumaSense";
+			};
+			name = Debug;
+		};
+		6213C11E309A31500AAAACC7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		7D2309A967529AD90E8D4190 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5BF427L96N;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.pneumasense.monitor;
+				PRODUCT_NAME = PneumaSense;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		97126DE6E5FF736052E0EA3D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		A89E8B948A3BE6EAD887FDFB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5BF427L96N;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.pneumasense.monitor;
+				PRODUCT_NAME = PneumaSense;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1CF918F65BCAF6420C9292C3 /* Build configuration list for PBXNativeTarget "PneumaSenseTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5D5B9D429371277D2828F8CC /* Debug */,
+				01D2D5D59B3418A64D5B80BF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		6896A55054EF0C6E4184311F /* Build configuration list for PBXNativeTarget "PneumaSense" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A89E8B948A3BE6EAD887FDFB /* Debug */,
+				7D2309A967529AD90E8D4190 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		B3638F791FD8A1EBD6034EAE /* Build configuration list for PBXProject "PneumaSense" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6213C11E309A31500AAAACC7 /* Debug */,
+				97126DE6E5FF736052E0EA3D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 65EA76324C8BBC10FE148E45 /* Project object */;
+}

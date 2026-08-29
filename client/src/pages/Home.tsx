@@ -100,7 +100,7 @@ export default function Home() {
       >
         <div className="flex items-center gap-2">
           <h1 className="type-headline text-foreground">
-            Pretracheal Monitor
+            Pneuma Sense
           </h1>
           {engine.isRunning && (
             <span className="flex items-center gap-1">

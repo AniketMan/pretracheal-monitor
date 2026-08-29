@@ -21,7 +21,7 @@ export default function StartScreen({ onStart, isOnline }: StartScreenProps) {
       <div className="flex items-center gap-3 mb-2">
         <Activity className="w-8 h-8 text-[var(--color-monitor-green)]" />
         <h1 className="font-data text-2xl md:text-3xl font-bold text-[var(--color-monitor-text)] tracking-tight">
-          Pretracheal Air Flow Monitor
+          Pneuma Sense
         </h1>
       </div>
 

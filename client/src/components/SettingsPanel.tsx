@@ -136,7 +136,7 @@ export default function SettingsPanel({
             About
           </h3>
           <p className="text-[11px] text-[var(--color-monitor-text-dim)] leading-relaxed">
-            Pretracheal Air Flow Monitor - USC Anesthesiology Scholarly Project.
+            Pneuma Sense - USC Anesthesiology Scholarly Project.
             Monitors pretracheal air flow via microphone input with real-time
             waveform display and configurable silence alarm.
           </p>
