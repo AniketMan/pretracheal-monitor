@@ -1,6 +1,6 @@
 {
-  "name": "Pretracheal Air Flow Monitor",
-  "short_name": "AirFlow Monitor",
+  "name": "Pneuma Sense",
+  "short_name": "Pneuma Sense",
   "description": "Real-time pretracheal air flow monitoring with waveform display and silence alarm",
   "start_url": "/pretracheal-monitor/",
   "display": "standalone",
