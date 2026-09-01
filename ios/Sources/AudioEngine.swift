@@ -48,8 +48,9 @@ final class AudioEngine {
 
     // MARK: Published state
 
-    /// Mic sensitivity — scales the displayed waveform and, with it, the
-    /// silence threshold, so raising it makes the alarm harder to trigger.
+    /// Mic sensitivity, 10x-500x. Scales the displayed waveform only: silence
+    /// detection runs at `defaultGain` (see `tick`), so moving this cannot
+    /// change when the no-airflow alarm fires.
     /// Persisted so a clinician's setting survives relaunch.
     var gain: Float = AudioEngine.storedGain() {
         didSet {
@@ -118,6 +119,9 @@ final class AudioEngine {
     private let gateAnalyzer = SpectrumAnalyzer()
     private let gateActive = AtomicFlag()
     private var calibrationTask: Task<BreathBand?, Never>?
+    /// Set by `cancelCalibration()`/`stop()`. Task cancellation alone is not
+    /// enough: the loop also has to refuse to apply a partially sampled band.
+    private var calibrationCancelled = false
     private var displayTimer: Timer?
     private var startTime = CFAbsoluteTimeGetCurrent()
     /// When the current run of silence began, or nil while sound is present.
@@ -182,7 +186,18 @@ final class AudioEngine {
 
             let input = engine.inputNode
             let format = input.outputFormat(forBus: 0)
-            sampleRate = format.sampleRate > 0 ? format.sampleRate : 44_100
+
+            // AVAudioEngine raises an Objective-C exception for an invalid
+            // format, which Swift cannot catch — so this has to be checked
+            // rather than left to the do/catch below. The input node reports a
+            // 0 Hz format when another app holds the microphone, during a call,
+            // or before the session is really active.
+            guard format.sampleRate > 0, format.channelCount > 0 else {
+                errorMessage = "The microphone is unavailable right now. It may be in use by a call or another app."
+                stop()
+                return
+            }
+            sampleRate = format.sampleRate
 
             let capacity = Int(sampleRate * Self.windowDuration)
             let buffer = WaveformBuffer(capacity: capacity)
@@ -253,6 +268,7 @@ final class AudioEngine {
         engine.inputNode.removeTap(onBus: 0)
         if eq.engine != nil { eq.removeTap(onBus: 0) }
         calibrationActive.value = false
+        calibrationCancelled = true
         calibrationTask?.cancel()
         calibrationTask = nil
         calibrationPhase = .idle
@@ -266,6 +282,10 @@ final class AudioEngine {
         isAlarm = false
         currentAmplitude = 0
         peakAmplitude = 0
+        // Otherwise a "Room noise ignored" badge lingers over a stopped
+        // monitor, implying analysis that is no longer running.
+        gateActive.value = false
+        gateVerdict = .noProfile
     }
 
     func toggleRecording() {
@@ -303,6 +323,20 @@ final class AudioEngine {
         if !gateActive.value { gateVerdict = .noProfile }
     }
 
+    /// Starts calibration and retains the task, so `cancelCalibration()` and
+    /// `stop()` can actually cancel it. Callers must go through this rather
+    /// than spawning their own task: a task the engine does not hold cannot be
+    /// cancelled, and the run would finish and apply a profile regardless.
+    func startCalibration() {
+        guard calibrationTask == nil else { return }
+        calibrationTask = Task { [weak self] in
+            guard let self else { return nil }
+            let result = await self.calibrate()
+            self.calibrationTask = nil
+            return result
+        }
+    }
+
     /// Samples the room, then the patient, and derives a passband from the
     /// difference between the two averaged spectra.
     @discardableResult
@@ -313,6 +347,7 @@ final class AudioEngine {
         }
 
         calibrationError = nil
+        calibrationCancelled = false
 
         // Calibration reads the raw input tap, so the filter state does not
         // affect the measurement — no need to bypass it here.
@@ -325,7 +360,7 @@ final class AudioEngine {
 
             let start = CFAbsoluteTimeGetCurrent()
             while CFAbsoluteTimeGetCurrent() - start < seconds {
-                if Task.isCancelled || !isRunning { return nil }
+                if Task.isCancelled || calibrationCancelled || !isRunning { return nil }
                 calibrationProgress = min((CFAbsoluteTimeGetCurrent() - start) / seconds, 1)
                 try? await Task.sleep(for: .milliseconds(50))
             }
@@ -346,6 +381,9 @@ final class AudioEngine {
             return nil
         }
 
+        // A cancel landing during the final sleep must not still apply a band.
+        guard !Task.isCancelled, !calibrationCancelled else { return nil }
+
         calibrationPhase = .analyzing
         let binHz = sampleRate / Double(analyzer.fftSize)
 
@@ -360,6 +398,7 @@ final class AudioEngine {
     }
 
     func cancelCalibration() {
+        calibrationCancelled = true
         calibrationTask?.cancel()
         calibrationTask = nil
         calibrationActive.value = false

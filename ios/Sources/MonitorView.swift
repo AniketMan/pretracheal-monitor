@@ -11,7 +11,6 @@ struct MonitorView: View {
     @State private var alarm = AlarmPlayer()
     @State private var exportURL: URL?
     @State private var showInputPicker = false
-    @State private var calibrationTask: Task<BreathBand?, Never>?
 
     var body: some View {
         ZStack {
@@ -128,7 +127,7 @@ struct MonitorView: View {
             } else {
                 HStack(spacing: 8) {
                     Button {
-                        calibrationTask = Task { await engine.calibrate() }
+                        engine.startCalibration()
                     } label: {
                         Label(engine.band == nil ? "Calibrate Breathing" : "Recalibrate",
                               systemImage: "waveform.badge.magnifyingglass")
