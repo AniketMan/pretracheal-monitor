@@ -48,14 +48,32 @@ final class AudioEngine {
 
     // MARK: Published state
 
+    @ObservationIgnored private var gainStorage: Float = AudioEngine.storedGain()
+
     /// Mic sensitivity, 10x-500x. Scales the displayed waveform only: silence
     /// detection runs at `defaultGain` (see `tick`), so moving this cannot
     /// change when the no-airflow alarm fires.
     /// Persisted so a clinician's setting survives relaunch.
-    var gain: Float = AudioEngine.storedGain() {
-        didSet {
-            gain = min(max(gain, Self.gainRange.lowerBound), Self.gainRange.upperBound)
-            UserDefaults.standard.set(gain, forKey: Self.gainDefaultsKey)
+    ///
+    /// Hand-written rather than a stored property with `didSet`. @Observable
+    /// rewrites a stored property into a computed one over private storage, so
+    /// clamping by assigning back to `gain` inside its own `didSet` re-entered
+    /// the observable setter instead of just writing storage — dragging the
+    /// slider recursed ~19k frames and overflowed the stack. Clamping before
+    /// the single write is the fix; access/withMutation keep it observable.
+    var gain: Float {
+        get {
+            access(keyPath: \.gain)
+            return gainStorage
+        }
+        set {
+            let clamped = min(max(newValue, Self.gainRange.lowerBound),
+                              Self.gainRange.upperBound)
+            guard clamped != gainStorage else { return }
+            withMutation(keyPath: \.gain) {
+                gainStorage = clamped
+                UserDefaults.standard.set(clamped, forKey: Self.gainDefaultsKey)
+            }
         }
     }
 

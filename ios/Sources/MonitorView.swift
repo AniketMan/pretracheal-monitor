@@ -236,7 +236,12 @@ struct MonitorView: View {
     // MARK: - Controls
 
     private var controlBar: some View {
-        GlassEffectContainer(spacing: 12) {
+        // spacing: 0 keeps the glass shapes from merging. GlassEffectContainer
+        // blends any two glass elements closer together than `spacing`, and at
+        // 12 — the same as the gap between the buttons — the tinted Start
+        // capsule permanently bled into Rec beside it. The container is kept so
+        // the bar still renders as one glass group.
+        GlassEffectContainer(spacing: 0) {
             HStack(spacing: 12) {
                 // Full titles when they fit, icons only on narrow devices.
                 ViewThatFits(in: .horizontal) {

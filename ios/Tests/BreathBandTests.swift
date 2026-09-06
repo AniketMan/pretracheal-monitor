@@ -140,6 +140,28 @@ struct BreathBandTests {
         }
     }
 
+    /// The static ladder tests below passed while the instance setter recursed
+    /// into itself ~19k deep and crashed the app, so exercise the real property.
+    @MainActor
+    @Test func settingGainOnTheEngineClampsWithoutRecursing() {
+        let engine = AudioEngine()
+
+        engine.gain = 100
+        #expect(engine.gain == 100)
+
+        engine.gain = 9_999          // above range
+        #expect(engine.gain == AudioEngine.gainRange.upperBound)
+
+        engine.gain = -5             // below range
+        #expect(engine.gain == AudioEngine.gainRange.lowerBound)
+
+        // A drag sends a dense stream of values, including repeats.
+        for step in AudioEngine.gainSteps + AudioEngine.gainSteps.reversed() {
+            engine.gain = step
+            #expect(engine.gain == step)
+        }
+    }
+
     @MainActor
     @Test func gainLadderCoversTheAdvertisedRange() {
         #expect(AudioEngine.gainSteps.first == 10)
