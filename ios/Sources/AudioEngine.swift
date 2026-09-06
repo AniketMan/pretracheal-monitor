@@ -220,8 +220,16 @@ final class AudioEngine {
             let gating = gateActive
 
             // Display + detection tap: downstream of the filter.
+            //
+            // The closures below MUST be @Sendable. AVAudioNodeTapBlock is not
+            // Sendable, so a closure formed here would otherwise inherit this
+            // method's @MainActor isolation, and AVAudioEngine calls taps on the
+            // realtime audio thread — Swift's dynamic isolation check then traps
+            // (EXC_BREAKPOINT in swift_task_isCurrentExecutor) on the first
+            // buffer. Everything captured is @unchecked Sendable and internally
+            // locked, so the audio thread can touch it safely.
             eq.removeTap(onBus: 0)
-            eq.installTap(onBus: 0, bufferSize: 1024, format: format) { pcm, _ in
+            eq.installTap(onBus: 0, bufferSize: 1024, format: format) { @Sendable pcm, _ in
                 guard let channel = pcm.floatChannelData?[0] else { return }
                 let frames = Int(pcm.frameLength)
                 channel.withMemoryRebound(to: Float.self, capacity: frames) { pointer in
@@ -233,7 +241,7 @@ final class AudioEngine {
             // of the filter. An exported WAV should be the real audio, and
             // calibration must not measure the previous calibration's passband.
             input.removeTap(onBus: 0)
-            input.installTap(onBus: 0, bufferSize: 1024, format: format) { pcm, _ in
+            input.installTap(onBus: 0, bufferSize: 1024, format: format) { @Sendable pcm, _ in
                 guard let channel = pcm.floatChannelData?[0] else { return }
                 let frames = Int(pcm.frameLength)
                 channel.withMemoryRebound(to: Float.self, capacity: frames) { pointer in
